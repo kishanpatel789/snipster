@@ -1,0 +1,19 @@
+[project]
+name = "snipster"
+version = "0.1.0"
+description = "A tool to store and manage code snippets."
+readme = "README.md"
+authors = [
+    { name = "Kishan Patel", email = "kishanpatel789@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "sqlmodel>=0.0.24",
+]
+
+[project.scripts]
+snipster = "snipster:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
