@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from sqlmodel import Field, SQLModel
@@ -18,6 +18,6 @@ class Snippet(SQLModel, table=True):
     description: str | None = None
     language: LangEnum
     tags: str  # relationship
-    created_at: datetime = datetime.now()
+    created_at: datetime = datetime.now(timezone.utc)
     updated_at: datetime | None = None
     favorite: bool = False

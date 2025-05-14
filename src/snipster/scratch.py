@@ -1,6 +1,8 @@
 # %%
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
+from src.snipster.models import LangEnum, Snippet
+
 # %%
 engine = create_engine("sqlite:///db.sqlite", echo=False)
 
@@ -58,5 +60,12 @@ with Session(engine) as session:
 
 
 # %%
+snippet = Snippet(
+    title="First snip",
+    code="print('hello world')",
+    description="Say hello snipster",
+    language=LangEnum.PY,
+    tags="beginner,training",
+)
 
-# %%
+snippet.model_dump()
