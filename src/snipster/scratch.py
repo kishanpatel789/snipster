@@ -55,3 +55,8 @@ with Session(engine) as session:
     if item is not None:
         session.delete(item)
         session.commit()
+
+
+# %%
+
+# %%

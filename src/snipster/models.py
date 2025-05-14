@@ -1,9 +1,23 @@
-from sqlmodel import Field, SQLModel, create_engine
+from datetime import datetime
+from enum import Enum
 
-engine = create_engine("sqlite:///db.sqlite", echo=False)
+from sqlmodel import Field, SQLModel
+
+# engine = create_engine("sqlite:///snipster.sqlite", echo=False)
 
 
-class Item(SQLModel, table=True):
-    id: int | None = Field(default=None, echo=False)
-    name: str
-    price: float
+class LangEnum(Enum):
+    PY = 1
+    SQL = 2
+
+
+class Snippet(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    title: str
+    code: str
+    description: str | None = None
+    language: LangEnum
+    tags: str  # relationship
+    created_at: datetime = datetime.now()
+    updated_at: datetime | None = None
+    favorite: bool = False
