@@ -25,12 +25,17 @@ class Snippet(SQLModel, table=True):
     updated_at: datetime | None = None
     favorite: bool = False
 
+    @classmethod
+    def create(cls, **kwargs):
+        snippet = cls(**kwargs)
+        return snippet
+
 
 if __name__ == "__main__":
     engine = get_engine()
     SQLModel.metadata.create_all(engine)
 
-    snippet = Snippet(
+    data = dict(
         title="First snip",
         code="print('hello world')",
         description="Say hello snipster",
@@ -38,4 +43,5 @@ if __name__ == "__main__":
         tags="beginner,training",
     )
 
-    snippet.model_dump()
+    snippet = Snippet.create(**data)
+    print(snippet.model_dump())
