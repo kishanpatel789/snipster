@@ -1,10 +1,10 @@
 from datetime import datetime, timezone
-from enum import Enum
+from enum import IntEnum
 
 from sqlmodel import Field, Relationship, Session, SQLModel, create_engine
 
 
-class LangEnum(Enum):
+class LangEnum(IntEnum):
     PY = 1
     SQL = 2
 
@@ -47,7 +47,7 @@ class Tag(SQLModel, table=True):
 
 
 def get_engine():
-    engine = create_engine("sqlite:///snipster.sqlite", echo=False)
+    engine = create_engine("sqlite:///snipster.sqlite", echo=True)
     return engine
 
 
