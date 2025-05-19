@@ -1,12 +1,19 @@
 from datetime import datetime, timezone
-from enum import IntEnum
+from enum import StrEnum
 
+from sqlalchemy import Column
+from sqlalchemy import Enum as SaEnum
 from sqlmodel import Field, Relationship, Session, SQLModel, create_engine
 
 
-class LangEnum(IntEnum):
-    PY = 1
-    SQL = 2
+def enum_column(enum_cls):
+    return Column(SaEnum(enum_cls, values_callable=lambda x: [e.value for e in x]))
+
+
+class LangEnum(StrEnum):
+    PYTHON = "py"
+    SQL = "sql"
+    RUST = "rs"
 
 
 class SnippetTagLink(SQLModel, table=True):
@@ -21,7 +28,7 @@ class Snippet(SQLModel, table=True):
     title: str
     code: str
     description: str | None = None
-    language: LangEnum
+    language: LangEnum = Field(sa_column=enum_column(LangEnum))
     created_at: datetime = datetime.now(timezone.utc)
     updated_at: datetime | None = None
     favorite: bool = False
@@ -64,7 +71,7 @@ def create_snippets(engine):
             title="First snip",
             code="print('hello world')",
             description="Say hello snipster",
-            language=LangEnum.PY,
+            language=LangEnum.PYTHON,
             tags=[tag_beginner, tag_training],
         )
 
