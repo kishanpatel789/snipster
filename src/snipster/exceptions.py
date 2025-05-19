@@ -1,0 +1,2 @@
+class SnippetNotFoundError(Exception):
+    pass
