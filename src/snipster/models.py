@@ -74,7 +74,6 @@ def create_snippets(engine):
             language=LangEnum.PYTHON,
             tags=[tag_beginner, tag_training],
         )
-
         session.add(snippet)
         session.commit()
 
