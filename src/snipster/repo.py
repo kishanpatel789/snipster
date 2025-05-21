@@ -25,25 +25,22 @@ class SnippetRepository(ABC):  # pragma: no cover
 
 class InMemorySnippetRepository(SnippetRepository):
     def __init__(self) -> None:
-        self.snippets: dict[int, Snippet] = {}
+        self._snippets: dict[int, Snippet] = {}
 
     def add(self, snippet: Snippet) -> None:
         if snippet.id is None:
-            if len(self.snippets) > 0:
-                snippet.id = max(self.snippets.keys()) + 1
-            else:
-                snippet.id = 1
-        self.snippets[snippet.id] = snippet
+            snippet.id = max(self._snippets.keys(), default=0) + 1
+        self._snippets[snippet.id] = snippet
 
     def list(self) -> Sequence[Snippet]:
-        return list(self.snippets.values())
+        return list(self._snippets.values())
 
     def get(self, snippet_id: int) -> Snippet | None:
-        return self.snippets.get(snippet_id)
+        return self._snippets.get(snippet_id)
 
     def delete(self, snippet_id: int) -> None:
-        if snippet_id in self.snippets:
-            self.snippets.pop(snippet_id)
+        if snippet_id in self._snippets:
+            self._snippets.pop(snippet_id)
         else:
             raise SnippetNotFoundError
 
