@@ -1,13 +1,21 @@
 import pytest
 
 from src.snipster.exceptions import SnippetNotFoundError
-from src.snipster.models import LangEnum, Snippet, Tag
-from src.snipster.repo import InMemorySnippetRepository
+from src.snipster.models import LangEnum, Snippet, SQLModel, Tag, create_engine
+from src.snipster.repo import DBSnippetRepository, InMemorySnippetRepository
 
 
-@pytest.fixture(scope="function")
-def repo() -> InMemorySnippetRepository:
-    return InMemorySnippetRepository()
+@pytest.fixture(scope="function", params=["memory", "db"])
+def repo(request) -> InMemorySnippetRepository:
+    match request.param:
+        case "memory":
+            return InMemorySnippetRepository()
+        case "db":
+            engine = create_engine("sqlite:///:memory:")
+            SQLModel.metadata.create_all(engine)
+            return DBSnippetRepository(engine)
+        case _:
+            raise ValueError(f"Unknown repo: {request.param}")
 
 
 @pytest.fixture(scope="function")
@@ -38,7 +46,7 @@ def add_another_snippet(repo) -> Snippet:
 
 
 def test_add_snippet(repo, add_snippet):
-    assert repo._snippets[1] == add_snippet
+    assert repo.get(1) == add_snippet
 
 
 def test_list_snippets_one_snippet(repo, add_snippet):

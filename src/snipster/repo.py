@@ -1,6 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Sequence
 
+from sqlalchemy import Engine  # for typing
+from sqlmodel import Session, select
+
 from .exceptions import SnippetNotFoundError
 from .models import Snippet
 
@@ -46,7 +49,33 @@ class InMemorySnippetRepository(SnippetRepository):
 
 
 class DBSnippetRepository(SnippetRepository):
-    pass
+    def __init__(self, engine: Engine) -> None:
+        self._engine = engine
+
+    def add(self, snippet: Snippet) -> None:
+        with Session(self._engine) as session:
+            session.add(snippet)
+            session.commit()
+            session.refresh(snippet)
+
+    def list(self) -> Sequence[Snippet]:
+        with Session(self._engine) as session:
+            snippets = session.exec(select(Snippet)).all()
+        return snippets
+
+    def get(self, snippet_id: int) -> Snippet | None:
+        with Session(self._engine) as session:
+            snippet = session.get(Snippet, snippet_id)
+        return snippet
+
+    def delete(self, snippet_id: int) -> None:
+        with Session(self._engine) as session:
+            snippet = session.get(Snippet, snippet_id)
+            if snippet is not None:
+                session.delete(snippet)
+                session.commit()
+            else:
+                raise SnippetNotFoundError
 
 
 class JSONSnippetRepository(SnippetRepository):
