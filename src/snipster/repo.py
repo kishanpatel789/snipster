@@ -85,15 +85,13 @@ class JSONSnippetRepository(SnippetRepository):
         self._file_path = file_dir / "snippets.json"
 
         if not self._file_path.exists():
-            self._file_path.touch()
+            self._file_path.write_text("{}")
 
-    def _read(self) -> dict[int, Snippet]:
+    def _read(self) -> dict[str, Snippet]:
         try:
             with open(self._file_path, "r") as f:
                 return json.load(f)
-        except json.JSONDecodeError:
-            return {}
-        except FileNotFoundError:
+        except (json.JSONDecodeError, FileNotFoundError):
             return {}
 
     def _write(self, data: dict) -> None:
@@ -101,20 +99,26 @@ class JSONSnippetRepository(SnippetRepository):
             return json.dump(data, f, indent=4)
 
     def add(self, snippet: Snippet) -> None:
-        _snippets = self._read()
+        data = self._read()
+        existing_ids = [int(k) for k in data.keys()]
         if snippet.id is None:
-            snippet.id = max(_snippets.keys(), default=0) + 1
-        _snippets[snippet.id] = snippet.model_dump(mode="json")
-        self._write(_snippets)
+            snippet.id = max(existing_ids, default=0) + 1
+        data[str(snippet.id)] = snippet.model_dump(mode="json")
+        self._write(data)
 
     def list(self) -> Sequence[Snippet]:
-        pass
+        data = self._read()
+        return [Snippet.model_validate(snippet_dict) for snippet_dict in data.values()]
 
     def get(self, snippet_id: int) -> Snippet | None:
-        _snippet_dict = self._read().get(str(snippet_id))
-        _snippet = Snippet.model_validate(_snippet_dict)
-
-        return _snippet
+        snippet_dict = self._read().get(str(snippet_id))
+        if snippet_dict is not None:
+            return Snippet.model_validate(snippet_dict)
 
     def delete(self, snippet_id: int) -> None:
-        pass
+        data = self._read()
+        if str(snippet_id) in data:
+            del data[str(snippet_id)]
+            self._write(data)
+        else:
+            raise SnippetNotFoundError
