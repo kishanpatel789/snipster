@@ -7,7 +7,7 @@ from sqlalchemy import Engine  # for typing
 from sqlmodel import Session, select
 
 from .exceptions import SnippetNotFoundError
-from .models import Snippet
+from .models import Snippet, Tag
 
 
 class SnippetRepository(ABC):  # pragma: no cover
@@ -103,7 +103,10 @@ class JSONSnippetRepository(SnippetRepository):
         existing_ids = [int(k) for k in data.keys()]
         if snippet.id is None:
             snippet.id = max(existing_ids, default=0) + 1
-        data[str(snippet.id)] = snippet.model_dump(mode="json")
+
+        snippet_dict = snippet.model_dump(mode="json")
+        snippet_dict["tags"] = [tag.model_dump(mode="json") for tag in snippet.tags]
+        data[str(snippet.id)] = snippet_dict
         self._write(data)
 
     def list(self) -> Sequence[Snippet]:
@@ -113,7 +116,10 @@ class JSONSnippetRepository(SnippetRepository):
     def get(self, snippet_id: int) -> Snippet | None:
         snippet_dict = self._read().get(str(snippet_id))
         if snippet_dict is not None:
-            return Snippet.model_validate(snippet_dict)
+            tags_data = snippet_dict.pop("tags", [])
+            snippet = Snippet.model_validate(snippet_dict)
+            snippet.tags = [Tag.model_validate(tag) for tag in tags_data]
+            return snippet
 
     def delete(self, snippet_id: int) -> None:
         data = self._read()
