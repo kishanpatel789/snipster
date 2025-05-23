@@ -55,32 +55,29 @@ class Tag(SQLModel, table=True):
     )
 
 
-def get_engine():
-    engine = create_engine("sqlite:///snipster.sqlite", echo=True)
-    return engine
+def main():  # pragma: no cover
+    def get_engine():
+        engine = create_engine("sqlite:///snipster.sqlite", echo=True)
+        return engine
 
+    def create_db_and_tables(engine):
+        SQLModel.metadata.create_all(engine)
 
-def create_db_and_tables(engine):
-    SQLModel.metadata.create_all(engine)
+    def create_snippets(engine):
+        with Session(engine) as session:
+            tag_beginner = Tag(name="beginner")
+            tag_training = Tag(name="training")
 
+            snippet = Snippet(
+                title="First snip",
+                code="print('hello world')",
+                description="Say hello snipster",
+                language=LangEnum.PYTHON,
+                tags=[tag_beginner, tag_training],
+            )
+            session.add(snippet)
+            session.commit()
 
-def create_snippets(engine):
-    with Session(engine) as session:
-        tag_beginner = Tag(name="beginner")
-        tag_training = Tag(name="training")
-
-        snippet = Snippet(
-            title="First snip",
-            code="print('hello world')",
-            description="Say hello snipster",
-            language=LangEnum.PYTHON,
-            tags=[tag_beginner, tag_training],
-        )
-        session.add(snippet)
-        session.commit()
-
-
-def main():
     engine = get_engine()
     create_db_and_tables(engine)
     create_snippets(engine)

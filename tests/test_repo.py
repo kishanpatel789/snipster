@@ -81,3 +81,8 @@ def test_delete_snippet(repo, add_snippet):
 def test_delete_snippet_not_found(repo):
     with pytest.raises(SnippetNotFoundError):
         repo.delete(99)
+
+
+def test_empty_dictionary_returned_new_json_repo(tmp_path):
+    repo = JSONSnippetRepository(tmp_path)
+    assert repo._read() == {}
