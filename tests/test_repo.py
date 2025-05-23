@@ -52,7 +52,9 @@ def add_another_snippet(repo) -> Snippet:
 
 
 def test_add_snippet(repo, add_snippet):
-    assert repo.get(1) == add_snippet
+    retrieved = repo.get(1)
+    assert retrieved == add_snippet
+    assert retrieved.tags == add_snippet.tags
 
 
 def test_list_snippets_one_snippet(repo, add_snippet):

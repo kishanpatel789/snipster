@@ -34,7 +34,9 @@ class Snippet(SQLModel, table=True):
     favorite: bool = False
 
     tags: list["Tag"] = Relationship(
-        back_populates="snippets", link_model=SnippetTagLink
+        back_populates="snippets",
+        link_model=SnippetTagLink,
+        sa_relationship_kwargs={"lazy": "selectin"},
     )
 
     @classmethod
