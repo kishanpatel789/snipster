@@ -36,12 +36,21 @@ class Snippet(SQLModel, table=True):
     tags: list["Tag"] = Relationship(
         back_populates="snippets",
         link_model=SnippetTagLink,
-        sa_relationship_kwargs={"lazy": "selectin"},
+        sa_relationship_kwargs={
+            "lazy": "selectin",
+        },
     )
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        if not hasattr(self, "tags") or self.tags is None:
+            self.tags = []
 
     @classmethod
     def create(cls, **kwargs):
         snippet = cls(**kwargs)
+        if snippet.tags is None:
+            snippet.tags = []
         return snippet
 
 

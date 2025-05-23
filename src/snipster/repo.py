@@ -104,10 +104,9 @@ class JSONSnippetRepository(SnippetRepository):
         return snippet_dict
 
     def _deserialize(self, snippet_dict: dict) -> Snippet:
+        tags_dict = snippet_dict.pop("tags", [])
         snippet = Snippet.model_validate(snippet_dict)
-        snippet.tags = [
-            Tag.model_validate(tag_dict) for tag_dict in snippet_dict["tags"]
-        ]
+        snippet.tags = [Tag.model_validate(tag) for tag in tags_dict]
         return snippet
 
     def add(self, snippet: Snippet) -> None:
