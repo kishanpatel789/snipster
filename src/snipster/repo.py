@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Sequence
 
 from sqlalchemy import Engine  # for typing
-from sqlmodel import Session, select
+from sqlmodel import Session, or_, select
 
 from .exceptions import SnippetNotFoundError
 from .models import LangEnum, Snippet, Tag
@@ -112,8 +112,18 @@ class DBSnippetRepository(SnippetRepository):
 
     def search(self, term: str, language: LangEnum | None = None) -> Sequence[Snippet]:
         results = []
-        # term_lower = term.lower()
-        # TODO: implement search by building sqlmodel query
+        term_lower = term.lower()
+        with Session(self._engine) as session:
+            query = select(Snippet).where(
+                or_(
+                    Snippet.title.ilike(f"%{term_lower}%"),
+                    Snippet.code.ilike(f"%{term_lower}%"),
+                    Snippet.description.ilike(f"%{term_lower}%"),
+                )
+            )
+            if language is not None:
+                query = query.where(Snippet.language == language)
+            results = session.exec(query).all()
         return results
 
     def toggle_favorite(self, snippet_id: int) -> None:
