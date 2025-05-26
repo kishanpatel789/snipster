@@ -24,31 +24,62 @@ def repo(request, tmp_path) -> InMemorySnippetRepository:
             raise ValueError(f"Unknown repo: {request.param}")
 
 
-@pytest.fixture(scope="function")
-def add_snippet(repo) -> Snippet:
+@pytest.fixture()
+def example_snippet_1() -> Snippet:
     tag_beginner = Tag(name="beginner")
     tag_training = Tag(name="training")
     snippet = Snippet(
         title="First snip",
         code="print('hello world')",
-        description="Say hello snipster",
+        description="Good day, Snipster!",
         language=LangEnum.PYTHON,
         tags=[tag_beginner, tag_training],
     )
-    repo.add(snippet)
     return snippet
 
 
-@pytest.fixture(scope="function")
-def add_another_snippet(repo) -> Snippet:
+@pytest.fixture()
+def example_snippet_2() -> Snippet:
     snippet = Snippet(
         title="Get it all",
         code="SELECT * FROM MY_TABLE;",
         description="Get all records from MY_TABLE",
         language=LangEnum.SQL,
     )
-    repo.add(snippet)
     return snippet
+
+
+@pytest.fixture()
+def example_snippet_3() -> Snippet:
+    snippet = Snippet(
+        title="Get some of it",
+        code="SELECT * FROM MY_TABLE LIMIT 10;",
+        description="Get some records from MY_TABLE",
+        language=LangEnum.SQL,
+    )
+    return snippet
+
+
+@pytest.fixture(scope="function")
+def add_snippet(repo, example_snippet_1) -> Snippet:
+    repo.add(example_snippet_1)
+    return example_snippet_1
+
+
+@pytest.fixture(scope="function")
+def add_another_snippet(repo, example_snippet_2) -> Snippet:
+    repo.add(example_snippet_2)
+    return example_snippet_2
+
+
+@pytest.fixture(scope="function")
+def add_snippets(
+    repo, example_snippet_1, example_snippet_2, example_snippet_3
+) -> list[Snippet]:
+    repo.add(example_snippet_1)
+    repo.add(example_snippet_2)
+    repo.add(example_snippet_3)
+    return [example_snippet_1, example_snippet_2, example_snippet_3]
 
 
 def test_add_snippet(repo, add_snippet):
@@ -112,3 +143,14 @@ def test_toggle_favorite(repo, add_snippet):
 def test_toggle_favorite_snippet_not_found(repo):
     with pytest.raises(SnippetNotFoundError):
         repo.toggle_favorite(99)
+
+
+def test_search_snippet(repo, add_snippets):
+    results = repo.search("select")
+    assert len(results) == 2
+
+    results = repo.search("hello")
+    assert len(results) == 1
+
+    results = repo.search("Non-existent snippet")
+    assert len(results) == 0

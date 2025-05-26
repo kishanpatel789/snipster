@@ -8,7 +8,7 @@ from sqlalchemy import Engine  # for typing
 from sqlmodel import Session, select
 
 from .exceptions import SnippetNotFoundError
-from .models import Snippet, Tag
+from .models import LangEnum, Snippet, Tag
 
 
 class SnippetRepository(ABC):  # pragma: no cover
@@ -26,6 +26,10 @@ class SnippetRepository(ABC):  # pragma: no cover
 
     @abstractmethod
     def delete(self, snippet_id: int) -> None:
+        pass
+
+    @abstractmethod
+    def search(self, term: str, language: LangEnum | None = None) -> Sequence[Snippet]:
         pass
 
     @abstractmethod
@@ -53,6 +57,21 @@ class InMemorySnippetRepository(SnippetRepository):
             self._snippets.pop(snippet_id)
         else:
             raise SnippetNotFoundError
+
+    def search(self, term: str, language: LangEnum | None = None) -> Sequence[Snippet]:
+        results = []
+        term_lower = term.lower()
+        for snippet in self._snippets.values():
+            if any(
+                [
+                    term_lower in snippet.title.lower(),
+                    term_lower in snippet.code.lower(),
+                    term_lower in snippet.description.lower(),
+                ]
+            ):
+                if language is None or snippet.language == language:
+                    results.append(snippet)
+        return results
 
     def toggle_favorite(self, snippet_id: int) -> None:
         snippet = self.get(snippet_id)
@@ -90,6 +109,12 @@ class DBSnippetRepository(SnippetRepository):
                 session.commit()
             else:
                 raise SnippetNotFoundError
+
+    def search(self, term: str, language: LangEnum | None = None) -> Sequence[Snippet]:
+        results = []
+        # term_lower = term.lower()
+        # TODO: implement search by building sqlmodel query
+        return results
 
     def toggle_favorite(self, snippet_id: int) -> None:
         with Session(self._engine) as session:
@@ -157,6 +182,23 @@ class JSONSnippetRepository(SnippetRepository):
             self._write(data)
         else:
             raise SnippetNotFoundError
+
+    def search(self, term: str, language: LangEnum | None = None) -> Sequence[Snippet]:
+        data = self._read()
+        snippets = [self._deserialize(snippet_dict) for snippet_dict in data.values()]
+        results = []
+        term_lower = term.lower()
+        for snippet in snippets:
+            if any(
+                [
+                    term_lower in snippet.title.lower(),
+                    term_lower in snippet.code.lower(),
+                    term_lower in snippet.description.lower(),
+                ]
+            ):
+                if language is None or snippet.language == language:
+                    results.append(snippet)
+        return results
 
     def toggle_favorite(self, snippet_id: int) -> None:
         data = self._read()
