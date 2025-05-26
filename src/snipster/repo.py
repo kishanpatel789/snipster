@@ -27,6 +27,10 @@ class SnippetRepository(ABC):  # pragma: no cover
     def delete(self, snippet_id: int) -> None:
         pass
 
+    @abstractmethod
+    def toggle_favorite(self, snippet_id: int) -> None:
+        pass
+
 
 class InMemorySnippetRepository(SnippetRepository):
     def __init__(self) -> None:
@@ -48,6 +52,12 @@ class InMemorySnippetRepository(SnippetRepository):
             self._snippets.pop(snippet_id)
         else:
             raise SnippetNotFoundError
+
+    def toggle_favorite(self, snippet_id: int) -> None:
+        snippet = self.get(snippet_id)
+        if snippet is None:
+            raise SnippetNotFoundError
+        snippet.favorite = not snippet.favorite
 
 
 class DBSnippetRepository(SnippetRepository):
@@ -78,6 +88,16 @@ class DBSnippetRepository(SnippetRepository):
                 session.commit()
             else:
                 raise SnippetNotFoundError
+
+    def toggle_favorite(self, snippet_id: int) -> None:
+        with Session(self._engine) as session:
+            snippet = session.get(Snippet, snippet_id)
+            if snippet is None:
+                raise SnippetNotFoundError
+            snippet.favorite = not snippet.favorite
+            session.add(snippet)
+            session.commit()
+            session.refresh(snippet)
 
 
 class JSONSnippetRepository(SnippetRepository):
@@ -134,3 +154,12 @@ class JSONSnippetRepository(SnippetRepository):
             self._write(data)
         else:
             raise SnippetNotFoundError
+
+    def toggle_favorite(self, snippet_id: int) -> None:
+        data = self._read()
+        if str(snippet_id) in data:
+            snippet_dict = data[str(snippet_id)]
+        else:
+            raise SnippetNotFoundError
+        snippet_dict["favorite"] = not snippet_dict["favorite"]
+        self._write(data)
