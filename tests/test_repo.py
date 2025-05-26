@@ -180,5 +180,5 @@ def test_fuzzy_search_snippet(repo, add_snippets):
     results = repo.search("ehllo world", fuzzy=True)
     assert len(results) == 1
 
-    # results = repo.search("Non-existent snippet")
-    # assert len(results) == 0
+    results = repo.search("Non-existent snippet")
+    assert len(results) == 0

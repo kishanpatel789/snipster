@@ -134,20 +134,47 @@ class DBSnippetRepository(SnippetRepository):
             else:
                 raise SnippetNotFoundError
 
-    def search(self, term: str, language: LangEnum | None = None) -> Sequence[Snippet]:
+    def search(
+        self, term: str, language: LangEnum | None = None, fuzzy: bool = False
+    ) -> Sequence[Snippet]:
         results = []
         term_lower = term.lower()
-        with Session(self._engine) as session:
-            query = select(Snippet).where(
-                or_(
-                    Snippet.title.ilike(f"%{term_lower}%"),
-                    Snippet.code.ilike(f"%{term_lower}%"),
-                    Snippet.description.ilike(f"%{term_lower}%"),
+
+        if fuzzy:
+            PASS_THRESHOLD = 0.6
+            with Session(self._engine) as session:
+                all_records = session.exec(select(Snippet)).all()
+                for snippet in all_records:
+                    if any(
+                        [
+                            SequenceMatcher(
+                                a=term_lower, b=snippet.title.lower()
+                            ).ratio()
+                            >= PASS_THRESHOLD,
+                            SequenceMatcher(
+                                a=term_lower, b=snippet.code.lower()
+                            ).ratio()
+                            >= PASS_THRESHOLD,
+                            SequenceMatcher(
+                                a=term_lower, b=snippet.description.lower()
+                            ).ratio()
+                            >= PASS_THRESHOLD,
+                        ]
+                    ):
+                        if language is None or snippet.language == language:
+                            results.append(snippet)
+        else:
+            with Session(self._engine) as session:
+                query = select(Snippet).where(
+                    or_(
+                        Snippet.title.ilike(f"%{term_lower}%"),
+                        Snippet.code.ilike(f"%{term_lower}%"),
+                        Snippet.description.ilike(f"%{term_lower}%"),
+                    )
                 )
-            )
-            if language is not None:
-                query = query.where(Snippet.language == language)
-            results = session.exec(query).all()
+                if language is not None:
+                    query = query.where(Snippet.language == language)
+                results = session.exec(query).all()
         return results
 
     def toggle_favorite(self, snippet_id: int) -> None:
