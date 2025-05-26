@@ -39,6 +39,26 @@ class SnippetRepository(ABC):  # pragma: no cover
     def toggle_favorite(self, snippet_id: int) -> None:
         pass
 
+    def _fuzzy_search(
+        self, snippets: Sequence[Snippet], term: str, language: LangEnum | None = None
+    ) -> Sequence[Snippet]:
+        PASS_THRESHOLD = 0.6
+        results = []
+        for snippet in snippets:
+            if any(
+                [
+                    SequenceMatcher(a=term, b=snippet.title.lower()).ratio()
+                    >= PASS_THRESHOLD,
+                    SequenceMatcher(a=term, b=snippet.code.lower()).ratio()
+                    >= PASS_THRESHOLD,
+                    SequenceMatcher(a=term, b=snippet.description.lower()).ratio()
+                    >= PASS_THRESHOLD,
+                ]
+            ):
+                if language is None or snippet.language == language:
+                    results.append(snippet)
+        return results
+
 
 class InMemorySnippetRepository(SnippetRepository):
     def __init__(self) -> None:
@@ -64,28 +84,14 @@ class InMemorySnippetRepository(SnippetRepository):
     def search(
         self, term: str, language: LangEnum | None = None, fuzzy: bool = False
     ) -> Sequence[Snippet]:
-        results = []
+        snippets = self._snippets.values()
         term_lower = term.lower()
 
         if fuzzy:
-            PASS_THRESHOLD = 0.6
-            for snippet in self._snippets.values():
-                if any(
-                    [
-                        SequenceMatcher(a=term_lower, b=snippet.title.lower()).ratio()
-                        >= PASS_THRESHOLD,
-                        SequenceMatcher(a=term_lower, b=snippet.code.lower()).ratio()
-                        >= PASS_THRESHOLD,
-                        SequenceMatcher(
-                            a=term_lower, b=snippet.description.lower()
-                        ).ratio()
-                        >= PASS_THRESHOLD,
-                    ]
-                ):
-                    if language is None or snippet.language == language:
-                        results.append(snippet)
+            return self._fuzzy_search(snippets, term_lower, language)
         else:
-            for snippet in self._snippets.values():
+            results = []
+            for snippet in snippets:
                 if any(
                     [
                         term_lower in snippet.title.lower(),
@@ -95,7 +101,7 @@ class InMemorySnippetRepository(SnippetRepository):
                 ):
                     if language is None or snippet.language == language:
                         results.append(snippet)
-        return results
+            return results
 
     def toggle_favorite(self, snippet_id: int) -> None:
         snippet = self.get(snippet_id)
@@ -137,33 +143,15 @@ class DBSnippetRepository(SnippetRepository):
     def search(
         self, term: str, language: LangEnum | None = None, fuzzy: bool = False
     ) -> Sequence[Snippet]:
-        results = []
         term_lower = term.lower()
 
         if fuzzy:
-            PASS_THRESHOLD = 0.6
             with Session(self._engine) as session:
                 all_records = session.exec(select(Snippet)).all()
-                for snippet in all_records:
-                    if any(
-                        [
-                            SequenceMatcher(
-                                a=term_lower, b=snippet.title.lower()
-                            ).ratio()
-                            >= PASS_THRESHOLD,
-                            SequenceMatcher(
-                                a=term_lower, b=snippet.code.lower()
-                            ).ratio()
-                            >= PASS_THRESHOLD,
-                            SequenceMatcher(
-                                a=term_lower, b=snippet.description.lower()
-                            ).ratio()
-                            >= PASS_THRESHOLD,
-                        ]
-                    ):
-                        if language is None or snippet.language == language:
-                            results.append(snippet)
+                results = self._fuzzy_search(all_records, term_lower, language)
+                return results
         else:
+            results = []
             with Session(self._engine) as session:
                 query = select(Snippet).where(
                     or_(
@@ -175,7 +163,7 @@ class DBSnippetRepository(SnippetRepository):
                 if language is not None:
                     query = query.where(Snippet.language == language)
                 results = session.exec(query).all()
-        return results
+            return results
 
     def toggle_favorite(self, snippet_id: int) -> None:
         with Session(self._engine) as session:
@@ -249,27 +237,12 @@ class JSONSnippetRepository(SnippetRepository):
     ) -> Sequence[Snippet]:
         data = self._read()
         snippets = [self._deserialize(snippet_dict) for snippet_dict in data.values()]
-        results = []
         term_lower = term.lower()
 
         if fuzzy:
-            PASS_THRESHOLD = 0.6
-            for snippet in snippets:
-                if any(
-                    [
-                        SequenceMatcher(a=term_lower, b=snippet.title.lower()).ratio()
-                        >= PASS_THRESHOLD,
-                        SequenceMatcher(a=term_lower, b=snippet.code.lower()).ratio()
-                        >= PASS_THRESHOLD,
-                        SequenceMatcher(
-                            a=term_lower, b=snippet.description.lower()
-                        ).ratio()
-                        >= PASS_THRESHOLD,
-                    ]
-                ):
-                    if language is None or snippet.language == language:
-                        results.append(snippet)
+            return self._fuzzy_search(snippets, term_lower, language)
         else:
+            results = []
             for snippet in snippets:
                 if any(
                     [
@@ -280,7 +253,7 @@ class JSONSnippetRepository(SnippetRepository):
                 ):
                     if language is None or snippet.language == language:
                         results.append(snippet)
-        return results
+            return results
 
     def toggle_favorite(self, snippet_id: int) -> None:
         data = self._read()
