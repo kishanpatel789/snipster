@@ -171,3 +171,14 @@ def test_search_snippet_by_language(repo, add_snippets):
 
     results = repo.search("Non-existent snippet")
     assert len(results) == 0
+
+
+def test_fuzzy_search_snippet(repo, add_snippets):
+    results = repo.search("Get iT", fuzzy=True)
+    assert len(results) == 2
+
+    results = repo.search("ehllo world", fuzzy=True)
+    assert len(results) == 1
+
+    # results = repo.search("Non-existent snippet")
+    # assert len(results) == 0

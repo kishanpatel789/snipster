@@ -1,6 +1,7 @@
 import json
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
+from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Sequence
 
@@ -29,7 +30,9 @@ class SnippetRepository(ABC):  # pragma: no cover
         pass
 
     @abstractmethod
-    def search(self, term: str, language: LangEnum | None = None) -> Sequence[Snippet]:
+    def search(
+        self, term: str, language: LangEnum | None = None, fuzzy: bool = False
+    ) -> Sequence[Snippet]:
         pass
 
     @abstractmethod
@@ -58,19 +61,40 @@ class InMemorySnippetRepository(SnippetRepository):
         else:
             raise SnippetNotFoundError
 
-    def search(self, term: str, language: LangEnum | None = None) -> Sequence[Snippet]:
+    def search(
+        self, term: str, language: LangEnum | None = None, fuzzy: bool = False
+    ) -> Sequence[Snippet]:
         results = []
         term_lower = term.lower()
-        for snippet in self._snippets.values():
-            if any(
-                [
-                    term_lower in snippet.title.lower(),
-                    term_lower in snippet.code.lower(),
-                    term_lower in snippet.description.lower(),
-                ]
-            ):
-                if language is None or snippet.language == language:
-                    results.append(snippet)
+
+        if fuzzy:
+            PASS_THRESHOLD = 0.6
+            for snippet in self._snippets.values():
+                if any(
+                    [
+                        SequenceMatcher(a=term_lower, b=snippet.title.lower()).ratio()
+                        >= PASS_THRESHOLD,
+                        SequenceMatcher(a=term_lower, b=snippet.code.lower()).ratio()
+                        >= PASS_THRESHOLD,
+                        SequenceMatcher(
+                            a=term_lower, b=snippet.description.lower()
+                        ).ratio()
+                        >= PASS_THRESHOLD,
+                    ]
+                ):
+                    if language is None or snippet.language == language:
+                        results.append(snippet)
+        else:
+            for snippet in self._snippets.values():
+                if any(
+                    [
+                        term_lower in snippet.title.lower(),
+                        term_lower in snippet.code.lower(),
+                        term_lower in snippet.description.lower(),
+                    ]
+                ):
+                    if language is None or snippet.language == language:
+                        results.append(snippet)
         return results
 
     def toggle_favorite(self, snippet_id: int) -> None:
@@ -193,21 +217,42 @@ class JSONSnippetRepository(SnippetRepository):
         else:
             raise SnippetNotFoundError
 
-    def search(self, term: str, language: LangEnum | None = None) -> Sequence[Snippet]:
+    def search(
+        self, term: str, language: LangEnum | None = None, fuzzy: bool = False
+    ) -> Sequence[Snippet]:
         data = self._read()
         snippets = [self._deserialize(snippet_dict) for snippet_dict in data.values()]
         results = []
         term_lower = term.lower()
-        for snippet in snippets:
-            if any(
-                [
-                    term_lower in snippet.title.lower(),
-                    term_lower in snippet.code.lower(),
-                    term_lower in snippet.description.lower(),
-                ]
-            ):
-                if language is None or snippet.language == language:
-                    results.append(snippet)
+
+        if fuzzy:
+            PASS_THRESHOLD = 0.6
+            for snippet in snippets:
+                if any(
+                    [
+                        SequenceMatcher(a=term_lower, b=snippet.title.lower()).ratio()
+                        >= PASS_THRESHOLD,
+                        SequenceMatcher(a=term_lower, b=snippet.code.lower()).ratio()
+                        >= PASS_THRESHOLD,
+                        SequenceMatcher(
+                            a=term_lower, b=snippet.description.lower()
+                        ).ratio()
+                        >= PASS_THRESHOLD,
+                    ]
+                ):
+                    if language is None or snippet.language == language:
+                        results.append(snippet)
+        else:
+            for snippet in snippets:
+                if any(
+                    [
+                        term_lower in snippet.title.lower(),
+                        term_lower in snippet.code.lower(),
+                        term_lower in snippet.description.lower(),
+                    ]
+                ):
+                    if language is None or snippet.language == language:
+                        results.append(snippet)
         return results
 
     def toggle_favorite(self, snippet_id: int) -> None:
