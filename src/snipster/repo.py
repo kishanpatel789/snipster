@@ -1,5 +1,6 @@
 import json
 from abc import ABC, abstractmethod
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Sequence
 
@@ -58,6 +59,7 @@ class InMemorySnippetRepository(SnippetRepository):
         if snippet is None:
             raise SnippetNotFoundError
         snippet.favorite = not snippet.favorite
+        snippet.updated_at = datetime.now(timezone.utc)
 
 
 class DBSnippetRepository(SnippetRepository):
@@ -95,6 +97,7 @@ class DBSnippetRepository(SnippetRepository):
             if snippet is None:
                 raise SnippetNotFoundError
             snippet.favorite = not snippet.favorite
+            snippet.updated_at = datetime.now(timezone.utc)
             session.add(snippet)
             session.commit()
             session.refresh(snippet)
@@ -159,7 +162,11 @@ class JSONSnippetRepository(SnippetRepository):
         data = self._read()
         if str(snippet_id) in data:
             snippet_dict = data[str(snippet_id)]
+            snippet = self._deserialize(snippet_dict)
         else:
             raise SnippetNotFoundError
-        snippet_dict["favorite"] = not snippet_dict["favorite"]
+        snippet.favorite = not snippet.favorite
+        snippet.updated_at = datetime.now(timezone.utc)
+        snippet_dict = self._serialize(snippet)
+        data[str(snippet.id)] = snippet_dict
         self._write(data)

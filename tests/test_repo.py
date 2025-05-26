@@ -102,6 +102,7 @@ def test_toggle_favorite(repo, add_snippet):
     repo.toggle_favorite(add_snippet.id)
     updated_snippet = repo.get(add_snippet.id)
     assert updated_snippet.favorite is True
+    assert updated_snippet.updated_at is not None
 
     repo.toggle_favorite(add_snippet.id)
     updated_snippet = repo.get(add_snippet.id)
