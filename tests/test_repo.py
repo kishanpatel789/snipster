@@ -182,3 +182,19 @@ def test_fuzzy_search_snippet(repo, add_snippets):
 
     results = repo.search("Non-existent snippet")
     assert len(results) == 0
+
+
+def test_add_tag(repo, add_another_snippet):
+    tag1 = Tag(name="Test Tag")
+    tag2 = Tag(name="Test Tag 2")
+    repo.tag(add_another_snippet.id, tag1, tag2)
+    assert len(repo.get(add_another_snippet.id).tags) == 2
+
+
+def test_remove_tag(repo, add_another_snippet):
+    tag1 = Tag(name="Test Tag")
+    tag2 = Tag(name="Test Tag 2")
+    repo.tag(add_another_snippet.id, tag1, tag2)
+    repo.tag(add_another_snippet.id, tag1, remove=True)
+
+    assert len(repo.get(add_another_snippet.id).tags) == 1

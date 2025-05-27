@@ -39,6 +39,10 @@ class SnippetRepository(ABC):  # pragma: no cover
     def toggle_favorite(self, snippet_id: int) -> None:
         pass
 
+    @abstractmethod
+    def tag(self, snippet_id: int, /, *tags: Tag, remove: bool = False) -> None:
+        pass
+
     def _fuzzy_search(
         self, snippets: Sequence[Snippet], term: str, language: LangEnum | None = None
     ) -> Sequence[Snippet]:
@@ -110,6 +114,18 @@ class InMemorySnippetRepository(SnippetRepository):
         snippet.favorite = not snippet.favorite
         snippet.updated_at = datetime.now(timezone.utc)
 
+    def tag(self, snippet_id: int, /, *tags: Tag, remove: bool = False) -> None:
+        snippet = self.get(snippet_id)
+        if snippet is None:
+            raise SnippetNotFoundError
+        if remove:
+            snippet.tags = [tag for tag in snippet.tags if tag not in tags]
+        else:
+            for tag in tags:
+                if tag not in snippet.tags:
+                    snippet.tags.append(tag)
+        snippet.updated_at = datetime.now(timezone.utc)
+
 
 class DBSnippetRepository(SnippetRepository):
     def __init__(self, engine: Engine) -> None:
@@ -171,6 +187,22 @@ class DBSnippetRepository(SnippetRepository):
             if snippet is None:
                 raise SnippetNotFoundError
             snippet.favorite = not snippet.favorite
+            snippet.updated_at = datetime.now(timezone.utc)
+            session.add(snippet)
+            session.commit()
+            session.refresh(snippet)
+
+    def tag(self, snippet_id: int, /, *tags: Tag, remove: bool = False) -> None:
+        with Session(self._engine) as session:
+            snippet = session.get(Snippet, snippet_id)
+            if snippet is None:
+                raise SnippetNotFoundError
+            if remove:
+                snippet.tags = [tag for tag in snippet.tags if tag not in tags]
+            else:
+                for tag in tags:
+                    if tag not in snippet.tags:
+                        snippet.tags.append(tag)
             snippet.updated_at = datetime.now(timezone.utc)
             session.add(snippet)
             session.commit()
@@ -263,6 +295,24 @@ class JSONSnippetRepository(SnippetRepository):
         else:
             raise SnippetNotFoundError
         snippet.favorite = not snippet.favorite
+        snippet.updated_at = datetime.now(timezone.utc)
+        snippet_dict = self._serialize(snippet)
+        data[str(snippet.id)] = snippet_dict
+        self._write(data)
+
+    def tag(self, snippet_id: int, /, *tags: Tag, remove: bool = False) -> None:
+        data = self._read()
+        if str(snippet_id) in data:
+            snippet_dict = data[str(snippet_id)]
+            snippet = self._deserialize(snippet_dict)
+        else:
+            raise SnippetNotFoundError
+        if remove:
+            snippet.tags = [tag for tag in snippet.tags if tag not in tags]
+        else:
+            for tag in tags:
+                if tag not in snippet.tags:
+                    snippet.tags.append(tag)
         snippet.updated_at = datetime.now(timezone.utc)
         snippet_dict = self._serialize(snippet)
         data[str(snippet.id)] = snippet_dict
