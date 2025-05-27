@@ -1,6 +1,8 @@
+import re
 from datetime import datetime, timezone
 from enum import StrEnum
 
+from pydantic import ConfigDict, field_validator
 from sqlalchemy import Column
 from sqlalchemy import Enum as SaEnum
 from sqlmodel import Field, Relationship, Session, SQLModel, create_engine
@@ -54,14 +56,23 @@ class Snippet(SQLModel, table=True):
         return snippet
 
 
-class Tag(SQLModel, table=True):
+class Tag(SQLModel, table=True, validate_assignment=True):
     id: int | None = Field(default=None, primary_key=True)
-    name: str
+    name: str = Field(min_length=3, max_length=20)
     active: bool = True
 
     snippets: list["Snippet"] = Relationship(
         back_populates="tags", link_model=SnippetTagLink
     )
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def clean_tag_name(cls, value: str) -> str:
+        value = value.strip().lower()
+        value = re.sub(r"\s+", "-", value)
+        return value
+
+    model_config = ConfigDict(validate_assignment=True)
 
 
 def main():  # pragma: no cover

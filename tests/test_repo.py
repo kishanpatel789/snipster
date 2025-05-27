@@ -87,13 +87,13 @@ def test_add_snippet(repo, add_snippet):
 
 
 def test_add_snippet_with_tags(repo, add_snippet):
-    retrieved = repo.get(1)
-    assert retrieved.tags == add_snippet.tags
+    snippet = repo.get(1)
+    assert snippet.tags == add_snippet.tags
 
 
 def test_add_snippet_without_tags(repo, add_another_snippet):
-    retrieved = repo.get(1)
-    assert retrieved.tags == add_another_snippet.tags
+    snippet = repo.get(1)
+    assert snippet.tags == add_another_snippet.tags
 
 
 def test_list_snippets_one_snippet(repo, add_snippet):
@@ -188,7 +188,9 @@ def test_add_tag(repo, add_another_snippet):
     tag1 = Tag(name="Test Tag")
     tag2 = Tag(name="Test Tag 2")
     repo.tag(add_another_snippet.id, tag1, tag2)
-    assert len(repo.get(add_another_snippet.id).tags) == 2
+    snippet = repo.get(add_another_snippet.id)
+    assert len(snippet.tags) == 2
+    assert snippet.tags[0].name == "test-tag"
 
 
 def test_remove_tag(repo, add_another_snippet):
@@ -196,5 +198,7 @@ def test_remove_tag(repo, add_another_snippet):
     tag2 = Tag(name="Test Tag 2")
     repo.tag(add_another_snippet.id, tag1, tag2)
     repo.tag(add_another_snippet.id, tag1, remove=True)
+    snippet = repo.get(add_another_snippet.id)
 
-    assert len(repo.get(add_another_snippet.id).tags) == 1
+    assert len(snippet.tags) == 1
+    assert snippet.tags[0].name == "test-tag-2"
