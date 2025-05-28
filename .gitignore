@@ -175,5 +175,6 @@ cython_debug/
 
 *.sqlite
 *.swp
+*.swo
 tmux_start.sh
 scratch.py
