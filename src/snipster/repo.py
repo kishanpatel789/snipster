@@ -169,11 +169,14 @@ class DBSnippetRepository(SnippetRepository):
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
 
-    def add(self, snippet: Snippet) -> None:
+    def _store_snippet(self, snippet: Snippet) -> None:
         with Session(self._engine) as session:
             session.add(snippet)
             session.commit()
             session.refresh(snippet)
+
+    def add(self, snippet: Snippet) -> None:
+        self._store_snippet(snippet)
 
     def list(self) -> Sequence[Snippet]:
         with Session(self._engine) as session:
@@ -229,20 +232,14 @@ class DBSnippetRepository(SnippetRepository):
         if snippet is None:
             raise SnippetNotFoundError
         self._update_favorite(snippet)
-        with Session(self._engine) as session:
-            session.add(snippet)
-            session.commit()
-            session.refresh(snippet)
+        self._store_snippet(snippet)
 
     def tag(self, snippet_id: int, /, *tags: Tag, remove: bool = False) -> None:
         snippet = self.get(snippet_id)
         if snippet is None:
             raise SnippetNotFoundError
         self._update_tags(snippet, tags, remove)
-        with Session(self._engine) as session:
-            session.add(snippet)
-            session.commit()
-            session.refresh(snippet)
+        self._store_snippet(snippet)
 
 
 class JSONSnippetRepository(SnippetRepository):
