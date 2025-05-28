@@ -73,23 +73,32 @@ class SnippetRepository(ABC):  # pragma: no cover
         return results
 
     def _fuzzy_search(
-        self, snippets: Sequence[Snippet], term: str, language: LangEnum | None = None
+        self,
+        snippets: Sequence[Snippet],
+        term: str,
+        tag_name: str | None = None,
+        language: LangEnum | None = None,
     ) -> Sequence[Snippet]:
         PASS_THRESHOLD = 0.6
         results = []
+        term_lower = term.lower()
         for snippet in snippets:
-            if any(
+            has_term_match = any(
                 [
-                    SequenceMatcher(a=term, b=snippet.title.lower()).ratio()
+                    SequenceMatcher(a=term_lower, b=snippet.title.lower()).ratio()
                     >= PASS_THRESHOLD,
-                    SequenceMatcher(a=term, b=snippet.code.lower()).ratio()
+                    SequenceMatcher(a=term_lower, b=snippet.code.lower()).ratio()
                     >= PASS_THRESHOLD,
-                    SequenceMatcher(a=term, b=snippet.description.lower()).ratio()
+                    SequenceMatcher(a=term_lower, b=snippet.description.lower()).ratio()
                     >= PASS_THRESHOLD,
                 ]
-            ):
-                if language is None or snippet.language == language:
-                    results.append(snippet)
+            )
+            has_language_match = language is None or snippet.language == language
+            has_tag_match = tag_name is None or tag_name in (
+                t.name for t in snippet.tags
+            )
+            if all([has_term_match, has_language_match, has_tag_match]):
+                results.append(snippet)
         return results
 
     def _update_favorite(self, snippet: Snippet) -> None:
@@ -137,10 +146,9 @@ class InMemorySnippetRepository(SnippetRepository):
         fuzzy: bool = False,
     ) -> Sequence[Snippet]:
         snippets = self._snippets.values()
-        term_lower = term.lower()
 
         if fuzzy:
-            return self._fuzzy_search(snippets, term_lower, language)
+            return self._fuzzy_search(snippets, term, tag_name, language)
         else:
             return self._simple_search(snippets, term, tag_name, language)
 
@@ -193,15 +201,14 @@ class DBSnippetRepository(SnippetRepository):
         language: LangEnum | None = None,
         fuzzy: bool = False,
     ) -> Sequence[Snippet]:
-        term_lower = term.lower()
-
         if fuzzy:
             with Session(self._engine) as session:
                 all_records = session.exec(select(Snippet)).all()
-                results = self._fuzzy_search(all_records, term_lower, language)
+                results = self._fuzzy_search(all_records, term, tag_name, language)
                 return results
         else:
             results = []
+            term_lower = term.lower()
             with Session(self._engine) as session:
                 query = select(Snippet).where(
                     or_(
@@ -306,10 +313,9 @@ class JSONSnippetRepository(SnippetRepository):
     ) -> Sequence[Snippet]:
         data = self._read()
         snippets = [self._deserialize(snippet_dict) for snippet_dict in data.values()]
-        term_lower = term.lower()
 
         if fuzzy:
-            return self._fuzzy_search(snippets, term_lower, language)
+            return self._fuzzy_search(snippets, term, tag_name, language)
         else:
             return self._simple_search(snippets, term, tag_name, language)
 

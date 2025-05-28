@@ -169,9 +169,6 @@ def test_search_snippet_by_language(repo, add_snippets):
     results = repo.search("", language=LangEnum.PYTHON)
     assert len(results) == 1
 
-    results = repo.search("Non-existent snippet")
-    assert len(results) == 0
-
 
 def test_search_snippet_by_tag(repo, add_snippets):
     results = repo.search("", tag_name="beginner")
@@ -183,9 +180,6 @@ def test_search_snippet_by_tag(repo, add_snippets):
     results = repo.search("", tag_name="beginner", language=LangEnum.SQL)
     assert len(results) == 0
 
-    results = repo.search("Non-existent snippet")
-    assert len(results) == 0
-
 
 def test_fuzzy_search_snippet(repo, add_snippets):
     results = repo.search("Get iT", fuzzy=True)
@@ -194,8 +188,24 @@ def test_fuzzy_search_snippet(repo, add_snippets):
     results = repo.search("ehllo world", fuzzy=True)
     assert len(results) == 1
 
-    results = repo.search("Non-existent snippet")
+
+def test_fuzzy_search_snippet_by_language(repo, add_snippets):
+    results = repo.search("Get iT", language=LangEnum.SQL, fuzzy=True)
+    assert len(results) == 2
+
+    results = repo.search("ehllo world", language=LangEnum.PYTHON, fuzzy=True)
+    assert len(results) == 1
+
+    results = repo.search("ehllo world", language=LangEnum.SQL, fuzzy=True)
     assert len(results) == 0
+
+
+def test_fuzzy_search_snippet_by_tag(repo, add_snippets):
+    results = repo.search("Get iT", tag_name="beginner", fuzzy=True)
+    assert len(results) == 0
+
+    results = repo.search("ehllo world", tag_name="beginner", fuzzy=True)
+    assert len(results) == 1
 
 
 def test_add_tag(repo, add_another_snippet):
