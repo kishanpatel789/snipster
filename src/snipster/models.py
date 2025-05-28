@@ -51,19 +51,12 @@ class Snippet(SQLModel, table=True):
     @classmethod
     def create(cls, **kwargs):
         snippet = cls(**kwargs)
-        if snippet.tags is None:
-            snippet.tags = []
         return snippet
 
 
-class Tag(SQLModel, table=True, validate_assignment=True):
-    id: int | None = Field(default=None, primary_key=True)
+class TagBase(SQLModel):
     name: str = Field(min_length=3, max_length=20)
     active: bool = True
-
-    snippets: list["Snippet"] = Relationship(
-        back_populates="tags", link_model=SnippetTagLink
-    )
 
     @field_validator("name", mode="before")
     @classmethod
@@ -73,6 +66,14 @@ class Tag(SQLModel, table=True, validate_assignment=True):
         return value
 
     model_config = ConfigDict(validate_assignment=True)
+
+
+class Tag(TagBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+
+    snippets: list["Snippet"] = Relationship(
+        back_populates="tags", link_model=SnippetTagLink
+    )
 
 
 def main():  # pragma: no cover
