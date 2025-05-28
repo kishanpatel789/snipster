@@ -202,3 +202,9 @@ def test_remove_tag(repo, add_another_snippet):
 
     assert len(snippet.tags) == 1
     assert snippet.tags[0].name == "test-tag-2"
+
+
+def test_tag_add_remove_snippet_not_found(repo):
+    tag1 = Tag(name="Test Tag")
+    with pytest.raises(SnippetNotFoundError):
+        repo.tag(99, tag1)

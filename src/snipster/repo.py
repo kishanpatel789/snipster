@@ -63,6 +63,16 @@ class SnippetRepository(ABC):  # pragma: no cover
                     results.append(snippet)
         return results
 
+    def _update_tags(self, snippet: Snippet, tags: Sequence[Tag], remove: bool) -> None:
+        if remove:
+            snippet.tags = [tag for tag in snippet.tags if tag not in tags]
+        else:
+            for tag in tags:
+                if tag not in snippet.tags:
+                    snippet.tags.append(tag)
+        snippet.updated_at = datetime.now(timezone.utc)
+        return snippet
+
 
 class InMemorySnippetRepository(SnippetRepository):
     def __init__(self) -> None:
@@ -118,13 +128,7 @@ class InMemorySnippetRepository(SnippetRepository):
         snippet = self.get(snippet_id)
         if snippet is None:
             raise SnippetNotFoundError
-        if remove:
-            snippet.tags = [tag for tag in snippet.tags if tag not in tags]
-        else:
-            for tag in tags:
-                if tag not in snippet.tags:
-                    snippet.tags.append(tag)
-        snippet.updated_at = datetime.now(timezone.utc)
+        self._update_tags(snippet, tags, remove)
 
 
 class DBSnippetRepository(SnippetRepository):
@@ -197,13 +201,7 @@ class DBSnippetRepository(SnippetRepository):
             snippet = session.get(Snippet, snippet_id)
             if snippet is None:
                 raise SnippetNotFoundError
-            if remove:
-                snippet.tags = [tag for tag in snippet.tags if tag not in tags]
-            else:
-                for tag in tags:
-                    if tag not in snippet.tags:
-                        snippet.tags.append(tag)
-            snippet.updated_at = datetime.now(timezone.utc)
+            self._update_tags(snippet, tags, remove)
             session.add(snippet)
             session.commit()
             session.refresh(snippet)
@@ -307,13 +305,7 @@ class JSONSnippetRepository(SnippetRepository):
             snippet = self._deserialize(snippet_dict)
         else:
             raise SnippetNotFoundError
-        if remove:
-            snippet.tags = [tag for tag in snippet.tags if tag not in tags]
-        else:
-            for tag in tags:
-                if tag not in snippet.tags:
-                    snippet.tags.append(tag)
-        snippet.updated_at = datetime.now(timezone.utc)
+        self._update_tags(snippet, tags, remove)
         snippet_dict = self._serialize(snippet)
         data[str(snippet.id)] = snippet_dict
         self._write(data)
