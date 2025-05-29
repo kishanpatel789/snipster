@@ -56,7 +56,6 @@ class Snippet(SQLModel, table=True):
 
 class TagBase(SQLModel):
     name: str = Field(min_length=3, max_length=20)
-    active: bool = True
 
     @field_validator("name", mode="before")
     @classmethod
