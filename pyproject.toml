@@ -8,7 +8,6 @@ authors = [
 ]
 requires-python = ">=3.13"
 dependencies = [
-    "alembic>=1.16.1",
     "python-dotenv>=1.1.0",
     "sqlmodel>=0.0.24",
 ]
@@ -22,6 +21,7 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "alembic>=1.16.1",
     "pytest>=8.3.5",
     "pytest-cov>=6.1.1",
 ]
