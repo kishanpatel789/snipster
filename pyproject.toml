@@ -10,10 +10,11 @@ requires-python = ">=3.13"
 dependencies = [
     "python-dotenv>=1.1.0",
     "sqlmodel>=0.0.24",
+    "typer>=0.16.0",
 ]
 
 [project.scripts]
-snipster = "snipster:main"
+snipster = "snipster.__main__:main"
 
 [build-system]
 requires = ["hatchling"]
