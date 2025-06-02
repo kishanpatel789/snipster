@@ -1,16 +1,19 @@
 import typer
+from dotenv import dotenv_values
 from sqlmodel import create_engine
 from typer import Typer
 
+from .exceptions import SnippetNotFoundError
 from .models import LangEnum, Snippet
 from .repo import DBSnippetRepository
 
+config = dotenv_values()
 app = Typer()
 
 
 @app.callback()
 def init(ctx: typer.Context):
-    engine = create_engine("sqlite:///snipster.sqlite", echo=False)
+    engine = create_engine(config["DATABASE_URL"], echo=False)
     ctx.obj = DBSnippetRepository(engine)
 
 
@@ -50,8 +53,12 @@ def get(snippet_id: int, ctx: typer.Context):
 @app.command()
 def delete(snippet_id: int, ctx: typer.Context):
     repo: DBSnippetRepository = ctx.obj
-    repo.delete(snippet_id)
-    print(f"Snippet {snippet_id} is deleted.")
+    try:
+        repo.delete(snippet_id)
+        print(f"Snippet {snippet_id} is deleted.")
+    except SnippetNotFoundError:
+        print(f"Snippet {snippet_id} not found.")
+        typer.Exit(code=1)
 
 
 @app.command()

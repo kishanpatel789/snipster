@@ -76,8 +76,12 @@ class Tag(TagBase, table=True):
 
 
 def main():  # pragma: no cover
+    from dotenv import dotenv_values
+
+    config = dotenv_values()
+
     def get_engine():
-        engine = create_engine("sqlite:///snipster.sqlite", echo=True)
+        engine = create_engine(config["DATABASE_URL"], echo=True)
         return engine
 
     def create_db_and_tables(engine):
