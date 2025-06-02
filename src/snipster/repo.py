@@ -1,13 +1,15 @@
 import json
 from abc import ABC, abstractmethod
+from datetime import datetime, timezone
+from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Sequence
 
 from sqlalchemy import Engine  # for typing
-from sqlmodel import Session, select
+from sqlmodel import Session, or_, select
 
 from .exceptions import SnippetNotFoundError
-from .models import Snippet, Tag
+from .models import LangEnum, Snippet, Tag
 
 
 class SnippetRepository(ABC):  # pragma: no cover
@@ -26,6 +28,93 @@ class SnippetRepository(ABC):  # pragma: no cover
     @abstractmethod
     def delete(self, snippet_id: int) -> None:
         pass
+
+    @abstractmethod
+    def search(
+        self,
+        term: str,
+        tag_name: str | None = None,
+        language: LangEnum | None = None,
+        fuzzy: bool = False,
+    ) -> Sequence[Snippet]:
+        pass
+
+    @abstractmethod
+    def toggle_favorite(self, snippet_id: int) -> None:
+        pass
+
+    @abstractmethod
+    def tag(self, snippet_id: int, /, *tags: Tag, remove: bool = False) -> None:
+        pass
+
+    def _simple_search(
+        self,
+        snippets: Sequence[Snippet],
+        term: str,
+        tag_name: str | None = None,
+        language: LangEnum | None = None,
+    ) -> Sequence[Snippet]:
+        results = []
+        term_lower = term.lower()
+        for snippet in snippets:
+            has_term_match = any(
+                [
+                    term_lower in snippet.title.lower(),
+                    term_lower in snippet.code.lower(),
+                    term_lower in snippet.description.lower(),
+                ]
+            )
+            has_language_match = language is None or snippet.language == language
+            has_tag_match = tag_name is None or tag_name in (
+                t.name for t in snippet.tags
+            )
+            if all([has_term_match, has_language_match, has_tag_match]):
+                results.append(snippet)
+        return results
+
+    def _fuzzy_search(
+        self,
+        snippets: Sequence[Snippet],
+        term: str,
+        tag_name: str | None = None,
+        language: LangEnum | None = None,
+    ) -> Sequence[Snippet]:
+        PASS_THRESHOLD = 0.6
+        results = []
+        term_lower = term.lower()
+        for snippet in snippets:
+            has_term_match = any(
+                [
+                    SequenceMatcher(a=term_lower, b=snippet.title.lower()).ratio()
+                    >= PASS_THRESHOLD,
+                    SequenceMatcher(a=term_lower, b=snippet.code.lower()).ratio()
+                    >= PASS_THRESHOLD,
+                    SequenceMatcher(a=term_lower, b=snippet.description.lower()).ratio()
+                    >= PASS_THRESHOLD,
+                ]
+            )
+            has_language_match = language is None or snippet.language == language
+            has_tag_match = tag_name is None or tag_name in (
+                t.name for t in snippet.tags
+            )
+            if all([has_term_match, has_language_match, has_tag_match]):
+                results.append(snippet)
+        return results
+
+    def _update_favorite(self, snippet: Snippet) -> None:
+        """Updates the snippet's favorite status and updated_at timestamp."""
+        snippet.favorite = not snippet.favorite
+        snippet.updated_at = datetime.now(timezone.utc)
+
+    def _update_tags(self, snippet: Snippet, tags: Sequence[Tag], remove: bool) -> None:
+        """Updates the snippet's tags in-place. Modifies snippet.tags and updated_at."""
+        if remove:
+            snippet.tags = [tag for tag in snippet.tags if tag not in tags]
+        else:
+            for tag in tags:
+                if tag not in snippet.tags:
+                    snippet.tags.append(tag)
+        snippet.updated_at = datetime.now(timezone.utc)
 
 
 class InMemorySnippetRepository(SnippetRepository):
@@ -49,16 +138,45 @@ class InMemorySnippetRepository(SnippetRepository):
         else:
             raise SnippetNotFoundError
 
+    def search(
+        self,
+        term: str,
+        tag_name: str | None = None,
+        language: LangEnum | None = None,
+        fuzzy: bool = False,
+    ) -> Sequence[Snippet]:
+        snippets = self._snippets.values()
+
+        if fuzzy:
+            return self._fuzzy_search(snippets, term, tag_name, language)
+        else:
+            return self._simple_search(snippets, term, tag_name, language)
+
+    def toggle_favorite(self, snippet_id: int) -> None:
+        snippet = self.get(snippet_id)
+        if snippet is None:
+            raise SnippetNotFoundError
+        self._update_favorite(snippet)
+
+    def tag(self, snippet_id: int, /, *tags: Tag, remove: bool = False) -> None:
+        snippet = self.get(snippet_id)
+        if snippet is None:
+            raise SnippetNotFoundError
+        self._update_tags(snippet, tags, remove)
+
 
 class DBSnippetRepository(SnippetRepository):
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
 
-    def add(self, snippet: Snippet) -> None:
+    def _store_snippet(self, snippet: Snippet) -> None:
         with Session(self._engine) as session:
             session.add(snippet)
             session.commit()
             session.refresh(snippet)
+
+    def add(self, snippet: Snippet) -> None:
+        self._store_snippet(snippet)
 
     def list(self) -> Sequence[Snippet]:
         with Session(self._engine) as session:
@@ -78,6 +196,50 @@ class DBSnippetRepository(SnippetRepository):
                 session.commit()
             else:
                 raise SnippetNotFoundError
+
+    def search(
+        self,
+        term: str,
+        tag_name: str | None = None,
+        language: LangEnum | None = None,
+        fuzzy: bool = False,
+    ) -> Sequence[Snippet]:
+        if fuzzy:
+            with Session(self._engine) as session:
+                all_records = session.exec(select(Snippet)).all()
+                results = self._fuzzy_search(all_records, term, tag_name, language)
+                return results
+        else:
+            results = []
+            term_lower = term.lower()
+            with Session(self._engine) as session:
+                query = select(Snippet).where(
+                    or_(
+                        Snippet.title.ilike(f"%{term_lower}%"),
+                        Snippet.code.ilike(f"%{term_lower}%"),
+                        Snippet.description.ilike(f"%{term_lower}%"),
+                    )
+                )
+                if tag_name is not None:
+                    query = query.where(Snippet.tags.any(Tag.name == tag_name))
+                if language is not None:
+                    query = query.where(Snippet.language == language)
+                results = session.exec(query).all()
+            return results
+
+    def toggle_favorite(self, snippet_id: int) -> None:
+        snippet = self.get(snippet_id)
+        if snippet is None:
+            raise SnippetNotFoundError
+        self._update_favorite(snippet)
+        self._store_snippet(snippet)
+
+    def tag(self, snippet_id: int, /, *tags: Tag, remove: bool = False) -> None:
+        snippet = self.get(snippet_id)
+        if snippet is None:
+            raise SnippetNotFoundError
+        self._update_tags(snippet, tags, remove)
+        self._store_snippet(snippet)
 
 
 class JSONSnippetRepository(SnippetRepository):
@@ -109,14 +271,18 @@ class JSONSnippetRepository(SnippetRepository):
         snippet.tags = [Tag.model_validate(tag) for tag in tags_dict]
         return snippet
 
+    def _store_snippet(self, snippet: Snippet) -> None:
+        data = self._read()
+        snippet_dict = self._serialize(snippet)
+        data[str(snippet.id)] = snippet_dict
+        self._write(data)
+
     def add(self, snippet: Snippet) -> None:
         data = self._read()
         existing_ids = [int(k) for k in data.keys()]
         if snippet.id is None:
             snippet.id = max(existing_ids, default=0) + 1
-        snippet_dict = self._serialize(snippet)
-        data[str(snippet.id)] = snippet_dict
-        self._write(data)
+        self._store_snippet(snippet)
 
     def list(self) -> Sequence[Snippet]:
         data = self._read()
@@ -134,3 +300,32 @@ class JSONSnippetRepository(SnippetRepository):
             self._write(data)
         else:
             raise SnippetNotFoundError
+
+    def search(
+        self,
+        term: str,
+        tag_name: str | None = None,
+        language: LangEnum | None = None,
+        fuzzy: bool = False,
+    ) -> Sequence[Snippet]:
+        data = self._read()
+        snippets = [self._deserialize(snippet_dict) for snippet_dict in data.values()]
+
+        if fuzzy:
+            return self._fuzzy_search(snippets, term, tag_name, language)
+        else:
+            return self._simple_search(snippets, term, tag_name, language)
+
+    def toggle_favorite(self, snippet_id: int) -> None:
+        snippet = self.get(snippet_id)
+        if snippet is None:
+            raise SnippetNotFoundError
+        self._update_favorite(snippet)
+        self._store_snippet(snippet)
+
+    def tag(self, snippet_id: int, /, *tags: Tag, remove: bool = False) -> None:
+        snippet = self.get(snippet_id)
+        if snippet is None:
+            raise SnippetNotFoundError
+        self._update_tags(snippet, tags, remove)
+        self._store_snippet(snippet)
