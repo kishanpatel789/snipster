@@ -6,18 +6,23 @@ from src.snipster.repo import (
     DBSnippetRepository,
     InMemorySnippetRepository,
     JSONSnippetRepository,
+    SnippetRepository,
 )
 
 
+def create_db_repo() -> DBSnippetRepository:
+    engine = create_engine("sqlite:///:memory:", echo=True)
+    SQLModel.metadata.create_all(engine)
+    return DBSnippetRepository(engine)
+
+
 @pytest.fixture(scope="function", params=["memory", "db", "json"])
-def repo(request, tmp_path) -> InMemorySnippetRepository:
+def repo(request, tmp_path) -> SnippetRepository:
     match request.param:
         case "memory":
             return InMemorySnippetRepository()
         case "db":
-            engine = create_engine("sqlite:///:memory:")
-            SQLModel.metadata.create_all(engine)
-            return DBSnippetRepository(engine)
+            return create_db_repo()
         case "json":
             return JSONSnippetRepository(tmp_path)
         case _:
@@ -232,3 +237,21 @@ def test_tag_add_remove_snippet_not_found(repo):
     tag1 = Tag(name="Test Tag")
     with pytest.raises(SnippetNotFoundError):
         repo.tag(99, tag1)
+
+
+def test_no_duplicate_tag_added(repo, add_another_snippet):
+    tag1 = Tag(name="Test Tag")
+    repo.tag(add_another_snippet.id, tag1)
+    repo.tag(add_another_snippet.id, tag1)
+    snippet = repo.get(add_another_snippet.id)
+    assert len(snippet.tags) == 1
+    assert snippet.tags[0].name == "test-tag"
+
+
+def test_no_duplicate_tag_added_db(example_snippet_1, example_snippet_2):
+    repo_db = create_db_repo()
+    repo_db.add(example_snippet_1)
+    repo_db.add(example_snippet_2)
+    repo_db.tag(example_snippet_2.id, Tag(name="beginner"))
+    snippet = repo_db.get(example_snippet_2.id)
+    assert snippet.tags[0].id == example_snippet_1.tags[0].id
