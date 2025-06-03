@@ -18,13 +18,19 @@ def init(ctx: typer.Context):
 
 
 @app.command()
-def add(title: str, code: str, ctx: typer.Context):
+def add(
+    title: str,
+    code: str,
+    language: LangEnum,
+    ctx: typer.Context,
+    description: str | None = None,
+):
     repo: DBSnippetRepository = ctx.obj
     snippet = Snippet.create(
         title=title,
         code=code,
-        description="A new snippet",
-        language=LangEnum.PYTHON,
+        description=description,
+        language=language,
     )
     repo.add(snippet)
 
