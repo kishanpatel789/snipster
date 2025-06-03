@@ -2,6 +2,11 @@ from typing import List
 
 import typer
 from dotenv import dotenv_values
+from rich import print
+from rich.console import Group
+from rich.panel import Panel
+from rich.syntax import Syntax
+from rich.text import Text
 from sqlmodel import create_engine
 from typer import Typer
 from typing_extensions import Annotated
@@ -12,6 +17,47 @@ from .repo import DBSnippetRepository
 
 config = dotenv_values()
 app = Typer()
+
+
+def generate_panel(snippet: Snippet) -> Panel:
+    """Generate a rich panel for displaying a snippet."""
+
+    title = f"{snippet.title} ({snippet.language.value})"
+    if snippet.favorite:
+        title += " \u2b50"
+    title_text = Text(title, style="bold")
+
+    body_elements = []
+    if snippet.description is not None:
+        body_elements.append(Text(snippet.description, style="dim"))
+
+    code_block = Syntax(
+        snippet.code, snippet.language, theme="monokai", line_numbers=False
+    )
+    body_elements.append(code_block)
+
+    if len(snippet.tags) > 0:
+        body_elements.append(
+            Text(
+                " ".join(f"#{tag.name}" for tag in snippet.tags),
+                style="dim",
+            )
+        )
+    body = Group(*body_elements)
+
+    panel = Panel.fit(
+        body,
+        title=title_text,
+        border_style="cyan",
+    )
+
+    return panel
+
+
+def print_panel(snippet: Snippet) -> None:
+    """Print a snippet wrapped in a rich panel."""
+    panel = generate_panel(snippet)
+    print(panel)
 
 
 @app.callback()
@@ -39,6 +85,9 @@ def add(
         language=language,
     )
     repo.add(snippet)
+    print(f"Snippet '{snippet.title}' added with ID {snippet.id}.")
+    snippet = repo.get(snippet.id)
+    print_panel(snippet)
 
 
 @app.command()
@@ -47,7 +96,8 @@ def list(ctx: typer.Context):
     repo: DBSnippetRepository = ctx.obj
     snippets = repo.list()
     if snippets:
-        print(snippets)  # TODO: format output with rich panels
+        for snippet in snippets:
+            print_panel(snippet)
     else:
         print("No snippets found.")
 
@@ -61,8 +111,7 @@ def get(
     repo: DBSnippetRepository = ctx.obj
     snippet = repo.get(snippet_id)
     if snippet:
-        # print(f"Snippet ID: {snippet.id}, Title: {snippet.title}, Code: {snippet.code}")
-        print(snippet)
+        print_panel(snippet)
     else:
         print(f"No snippet found with ID {snippet_id}.")
 
@@ -101,7 +150,8 @@ def search(
     repo: DBSnippetRepository = ctx.obj
     results = repo.search(term, tag_name=tag, language=language, fuzzy=fuzzy)
     if results:
-        print(results)
+        for snippet in results:
+            print_panel(snippet)
     else:
         print("No snippets found matching the search criteria.")
 
@@ -116,7 +166,7 @@ def toggle_favorite(
     try:
         repo.toggle_favorite(snippet_id)
         snippet = repo.get(snippet_id)
-        print(snippet)
+        print_panel(snippet)
     except SnippetNotFoundError:
         print(f"Snippet {snippet_id} not found.")
         typer.Exit(code=1)
@@ -139,7 +189,7 @@ def tag(
         ]  # TODO: stop duplicate tag entries in db
         repo.tag(snippet_id, *tag_objs, remove=remove)
         snippet = repo.get(snippet_id)
-        print(snippet)
+        print_panel(snippet)
     except SnippetNotFoundError:
         print(f"Snippet {snippet_id} not found.")
         typer.Exit(code=1)
