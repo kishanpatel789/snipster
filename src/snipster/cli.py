@@ -1,3 +1,5 @@
+from typing import List
+
 import typer
 from dotenv import dotenv_values
 from sqlmodel import create_engine
@@ -5,7 +7,7 @@ from typer import Typer
 from typing_extensions import Annotated
 
 from .exceptions import SnippetNotFoundError
-from .models import LangEnum, Snippet
+from .models import LangEnum, Snippet, Tag
 from .repo import DBSnippetRepository
 
 config = dotenv_values()
@@ -81,15 +83,63 @@ def delete(
 
 
 @app.command()
-def search(ctx: typer.Context):
-    pass
+def search(
+    term: Annotated[
+        str,
+        typer.Argument(help="Text to search title, code, and description of snippets"),
+    ],
+    ctx: typer.Context,
+    tag: Annotated[str | None, typer.Option(help="Filter results by tag name")] = None,
+    language: Annotated[
+        LangEnum | None, typer.Option(help="Filter results by language")
+    ] = None,
+    fuzzy: Annotated[
+        bool, typer.Option(help="Perform fuzzy search instead of strict search")
+    ] = False,
+):
+    """Search for code snippets by title, code, description, tag, or language."""
+    repo: DBSnippetRepository = ctx.obj
+    results = repo.search(term, tag_name=tag, language=language, fuzzy=fuzzy)
+    if results:
+        print(results)
+    else:
+        print("No snippets found matching the search criteria.")
 
 
 @app.command()
-def toggle_favorite(ctx: typer.Context):
-    pass
+def toggle_favorite(
+    snippet_id: Annotated[int, typer.Argument(help="ID of snippet to toggle")],
+    ctx: typer.Context,
+):
+    """Toggle favorite status of a code snippet by its ID."""
+    repo: DBSnippetRepository = ctx.obj
+    try:
+        repo.toggle_favorite(snippet_id)
+        snippet = repo.get(snippet_id)
+        print(snippet)
+    except SnippetNotFoundError:
+        print(f"Snippet {snippet_id} not found.")
+        typer.Exit(code=1)
 
 
 @app.command()
-def tag(ctx: typer.Context):
-    pass
+def tag(
+    snippet_id: Annotated[int, typer.Argument(help="ID of snippet to update")],
+    tags: Annotated[List[str], typer.Argument(help="Tags to add or remove")],
+    ctx: typer.Context,
+    remove: Annotated[
+        bool, typer.Option("--remove", help="Remove tag instead of adding")
+    ] = False,
+):
+    """Add or remove tags from a code snippet."""
+    repo: DBSnippetRepository = ctx.obj
+    try:
+        tag_objs = [
+            Tag(name=tag) for tag in tags
+        ]  # TODO: stop duplicate tag entries in db
+        repo.tag(snippet_id, *tag_objs, remove=remove)
+        snippet = repo.get(snippet_id)
+        print(snippet)
+    except SnippetNotFoundError:
+        print(f"Snippet {snippet_id} not found.")
+        typer.Exit(code=1)
