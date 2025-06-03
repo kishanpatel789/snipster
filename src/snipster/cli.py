@@ -2,6 +2,7 @@ import typer
 from dotenv import dotenv_values
 from sqlmodel import create_engine
 from typer import Typer
+from typing_extensions import Annotated
 
 from .exceptions import SnippetNotFoundError
 from .models import LangEnum, Snippet
@@ -19,12 +20,15 @@ def init(ctx: typer.Context):
 
 @app.command()
 def add(
-    title: str,
-    code: str,
-    language: LangEnum,
+    title: Annotated[str, typer.Argument(help="Title of the code snippet")],
+    code: Annotated[str, typer.Argument(help="Code written as text")],
+    language: Annotated[LangEnum, typer.Argument(help="Language of the code")],
     ctx: typer.Context,
-    description: str | None = None,
+    description: Annotated[
+        str | None, typer.Option(help="Brief description of what code does")
+    ] = None,
 ):
+    """Add a code snippet."""
     repo: DBSnippetRepository = ctx.obj
     snippet = Snippet.create(
         title=title,
@@ -37,27 +41,36 @@ def add(
 
 @app.command()
 def list(ctx: typer.Context):
+    """List all code snippets."""
     repo: DBSnippetRepository = ctx.obj
     snippets = repo.list()
     if snippets:
-        print(snippets)
+        print(snippets)  # TODO: format output with rich panels
     else:
         print("No snippets found.")
 
 
 @app.command()
-def get(snippet_id: int, ctx: typer.Context):
+def get(
+    snippet_id: Annotated[int, typer.Argument(help="ID of snippet to retrieve")],
+    ctx: typer.Context,
+):
+    """Get a code snippet by its ID."""
     repo: DBSnippetRepository = ctx.obj
     snippet = repo.get(snippet_id)
     if snippet:
         # print(f"Snippet ID: {snippet.id}, Title: {snippet.title}, Code: {snippet.code}")
         print(snippet)
     else:
-        print(f"No snippet found with ID {snippet_id}")
+        print(f"No snippet found with ID {snippet_id}.")
 
 
 @app.command()
-def delete(snippet_id: int, ctx: typer.Context):
+def delete(
+    snippet_id: Annotated[int, typer.Argument(help="ID of snippet to delete")],
+    ctx: typer.Context,
+):
+    """Delete a code snippet by its ID."""
     repo: DBSnippetRepository = ctx.obj
     try:
         repo.delete(snippet_id)
