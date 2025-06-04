@@ -240,16 +240,13 @@ class DBSnippetRepository(SnippetRepository):
             raise SnippetNotFoundError
 
         # get existing tags from database, if applicable
+        tag_names = {tag.name for tag in tags}
         with Session(self._engine) as session:
-            tags_tracked = []
-            for tag in tags:
-                existing_tag = session.exec(
-                    select(Tag).where(Tag.name == tag.name)
-                ).first()
-                if existing_tag is not None:
-                    tags_tracked.append(existing_tag)
-                else:
-                    tags_tracked.append(tag)
+            existing_tags = session.exec(
+                select(Tag).where(Tag.name.in_(tag_names))
+            ).all()
+            existing_tags_dict = {tag.name: tag for tag in existing_tags}
+            tags_tracked = [existing_tags_dict.get(tag.name, tag) for tag in tags]
 
         self._update_tags(snippet, tags_tracked, remove)
         self._store_snippet(snippet)
