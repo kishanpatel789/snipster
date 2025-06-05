@@ -108,12 +108,23 @@ class SnippetRepository(ABC):  # pragma: no cover
 
     def _update_tags(self, snippet: Snippet, tags: Sequence[Tag], remove: bool) -> None:
         """Updates the snippet's tags in-place. Modifies snippet.tags and updated_at."""
+        # O(m+n) instead of O(m*n)
+        current_tags: dict[str, Tag] = {tag.name: tag for tag in snippet.tags}
+        incoming_tags: dict[str, Tag] = {tag.name: tag for tag in tags}
+
         if remove:
-            snippet.tags = [tag for tag in snippet.tags if tag not in tags]
+            updated_tags = [
+                tag
+                for tag_name, tag in current_tags.items()
+                if tag_name not in incoming_tags
+            ]
         else:
-            for tag in tags:
-                if tag not in snippet.tags:
-                    snippet.tags.append(tag)
+            updated_tags = list(current_tags.values())
+            for tag_name, tag in incoming_tags.items():
+                if tag_name not in current_tags:
+                    updated_tags.append(tag)
+
+        snippet.tags = updated_tags
         snippet.updated_at = datetime.now(timezone.utc)
 
 
