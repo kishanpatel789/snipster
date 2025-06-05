@@ -170,7 +170,7 @@ def toggle_favorite(
         print_panel(snippet)
     except SnippetNotFoundError:
         print(f"Snippet {snippet_id} not found.")
-        typer.Exit(code=1)
+        raise typer.Exit(code=1)
 
 
 @app.command()
@@ -191,4 +191,4 @@ def tag(
         print_panel(snippet)
     except SnippetNotFoundError:
         print(f"Snippet {snippet_id} not found.")
-        typer.Exit(code=1)
+        raise typer.Exit(code=1)
