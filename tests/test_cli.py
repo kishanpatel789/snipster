@@ -7,20 +7,24 @@ from src.snipster.cli import app
 runner = CliRunner()
 
 
-@pytest.fixture()
-def app_with_db(create_db_repo):
+@pytest.fixture(autouse=True)
+def test_app(create_db_repo):
     """Overwrite app context with in-memory database."""
 
     @app.callback()
     def override_init(ctx: typer.Context):
         ctx.obj = create_db_repo
 
-    return app
+
+# @pytest.fixture(autouse=True)
+# def db_setup(tmp_path, monkeypatch):
+#     db_path = tmp_path / "test.db"
+#     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
 
 
-def test_add_snippet(app_with_db):
+def test_add_snippet():
     result = runner.invoke(
-        app_with_db,
+        app,
         [
             "add",
             "Test Snippet",
