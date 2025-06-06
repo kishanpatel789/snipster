@@ -178,3 +178,4 @@ cython_debug/
 *.swo
 tmux_start.sh
 scratch.py
+*.db
