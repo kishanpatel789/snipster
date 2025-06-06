@@ -114,6 +114,7 @@ def get(
         print_panel(snippet)
     else:
         print(f"No snippet found with ID {snippet_id}.")
+        raise typer.Exit(code=1)
 
 
 @app.command()
@@ -128,7 +129,7 @@ def delete(
         print(f"Snippet {snippet_id} is deleted.")
     except SnippetNotFoundError:
         print(f"Snippet {snippet_id} not found.")
-        typer.Exit(code=1)
+        raise typer.Exit(code=1)
 
 
 @app.command()
@@ -169,7 +170,7 @@ def toggle_favorite(
         print_panel(snippet)
     except SnippetNotFoundError:
         print(f"Snippet {snippet_id} not found.")
-        typer.Exit(code=1)
+        raise typer.Exit(code=1)
 
 
 @app.command()
@@ -184,12 +185,10 @@ def tag(
     """Add or remove tags from a code snippet."""
     repo: DBSnippetRepository = ctx.obj
     try:
-        tag_objs = [
-            Tag(name=tag) for tag in tags
-        ]  # TODO: stop duplicate tag entries in db
+        tag_objs = [Tag(name=tag) for tag in tags]
         repo.tag(snippet_id, *tag_objs, remove=remove)
         snippet = repo.get(snippet_id)
         print_panel(snippet)
     except SnippetNotFoundError:
         print(f"Snippet {snippet_id} not found.")
-        typer.Exit(code=1)
+        raise typer.Exit(code=1)

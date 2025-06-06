@@ -1,28 +1,21 @@
 import pytest
 
 from src.snipster.exceptions import SnippetNotFoundError
-from src.snipster.models import LangEnum, Snippet, SQLModel, Tag, create_engine
+from src.snipster.models import LangEnum, Snippet, Tag
 from src.snipster.repo import (
-    DBSnippetRepository,
     InMemorySnippetRepository,
     JSONSnippetRepository,
     SnippetRepository,
 )
 
 
-def create_db_repo() -> DBSnippetRepository:
-    engine = create_engine("sqlite:///:memory:", echo=True)
-    SQLModel.metadata.create_all(engine)
-    return DBSnippetRepository(engine)
-
-
 @pytest.fixture(scope="function", params=["memory", "db", "json"])
-def repo(request, tmp_path) -> SnippetRepository:
+def repo(request, create_db_repo, tmp_path) -> SnippetRepository:
     match request.param:
         case "memory":
             return InMemorySnippetRepository()
         case "db":
-            return create_db_repo()
+            return create_db_repo
         case "json":
             return JSONSnippetRepository(tmp_path)
         case _:
@@ -248,8 +241,10 @@ def test_no_duplicate_tag_added(repo, add_another_snippet):
     assert snippet.tags[0].name == "test-tag"
 
 
-def test_no_duplicate_tag_added_db(example_snippet_1, example_snippet_2):
-    repo_db = create_db_repo()
+def test_no_duplicate_tag_added_db(
+    create_db_repo, example_snippet_1, example_snippet_2
+):
+    repo_db = create_db_repo
     repo_db.add(example_snippet_1)
     repo_db.add(example_snippet_2)
     repo_db.tag(example_snippet_2.id, Tag(name="beginner"))
