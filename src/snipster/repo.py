@@ -108,12 +108,23 @@ class SnippetRepository(ABC):  # pragma: no cover
 
     def _update_tags(self, snippet: Snippet, tags: Sequence[Tag], remove: bool) -> None:
         """Updates the snippet's tags in-place. Modifies snippet.tags and updated_at."""
+        # O(m+n) instead of O(m*n)
+        current_tags: dict[str, Tag] = {tag.name: tag for tag in snippet.tags}
+        incoming_tags: dict[str, Tag] = {tag.name: tag for tag in tags}
+
         if remove:
-            snippet.tags = [tag for tag in snippet.tags if tag not in tags]
+            updated_tags = [
+                tag
+                for tag_name, tag in current_tags.items()
+                if tag_name not in incoming_tags
+            ]
         else:
-            for tag in tags:
-                if tag not in snippet.tags:
-                    snippet.tags.append(tag)
+            updated_tags = list(current_tags.values())
+            for tag_name, tag in incoming_tags.items():
+                if tag_name not in current_tags:
+                    updated_tags.append(tag)
+
+        snippet.tags = updated_tags
         snippet.updated_at = datetime.now(timezone.utc)
 
 
@@ -238,7 +249,19 @@ class DBSnippetRepository(SnippetRepository):
         snippet = self.get(snippet_id)
         if snippet is None:
             raise SnippetNotFoundError
-        self._update_tags(snippet, tags, remove)
+
+        # get existing tags from database, if applicable
+        tag_names = {tag.name for tag in tags}
+        with Session(self._engine) as session:
+            existing_tags = session.exec(
+                select(Tag).where(Tag.name.in_(tag_names))
+            ).all()
+            existing_tags_dict = {tag.name: tag for tag in existing_tags}
+            tags_tracked = tuple(
+                [existing_tags_dict.get(tag.name, tag) for tag in tags]
+            )
+
+        self._update_tags(snippet, tags_tracked, remove)
         self._store_snippet(snippet)
 
 
