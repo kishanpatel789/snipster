@@ -257,7 +257,9 @@ class DBSnippetRepository(SnippetRepository):
                 select(Tag).where(Tag.name.in_(tag_names))
             ).all()
             existing_tags_dict = {tag.name: tag for tag in existing_tags}
-            tags_tracked = [existing_tags_dict.get(tag.name, tag) for tag in tags]
+            tags_tracked = tuple(
+                [existing_tags_dict.get(tag.name, tag) for tag in tags]
+            )
 
         self._update_tags(snippet, tags_tracked, remove)
         self._store_snippet(snippet)

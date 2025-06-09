@@ -7,7 +7,7 @@ from rich.console import Group
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.text import Text
-from sqlmodel import create_engine, SQLModel
+from sqlmodel import SQLModel, create_engine
 from typer import Typer
 from typing_extensions import Annotated
 
@@ -61,7 +61,7 @@ def print_panel(snippet: Snippet) -> None:
 
 @app.callback()
 def init(ctx: typer.Context):
-    database_url = config("DATABASE_URL", default="sqlite:///snippets.db")
+    database_url = config("DATABASE_URL", default="sqlite:///snipster.sqlite")
     engine = create_engine(database_url, echo=False)
     SQLModel.metadata.create_all(engine)
     ctx.obj = DBSnippetRepository(engine)
