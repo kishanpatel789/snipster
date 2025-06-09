@@ -7,12 +7,12 @@ from rich.console import Group
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.text import Text
-from sqlmodel import SQLModel, create_engine
+from sqlmodel import create_engine
 from typer import Typer
 from typing_extensions import Annotated
 
 from .exceptions import SnippetNotFoundError
-from .models import LangEnum, Snippet, Tag
+from .models import LangEnum, Snippet, SQLModel, Tag
 from .repo import DBSnippetRepository
 
 app = Typer()
