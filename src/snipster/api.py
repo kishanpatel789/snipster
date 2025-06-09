@@ -5,7 +5,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from sqlmodel import create_engine
 
 from .exceptions import SnippetNotFoundError
-from .models import DeleteResponse, LangEnum, Snippet, SnippetCreate, SnippetRead
+from .models import DeleteResponse, LangEnum, Snippet, SnippetCreate, SnippetRead, Tag
 from .repo import DBSnippetRepository
 
 app = FastAPI()
@@ -83,3 +83,21 @@ def search_snippets(
 ):
     snippets = repo.search(term, tag_name=tag_name, language=language, fuzzy=fuzzy)
     return snippets
+
+
+@app.post("/snippets/{snippet_id}/tags", response_model=SnippetRead)
+def tag(
+    snippet_id: int,
+    tags: list[str],
+    repo: RepoDep,
+    remove: bool = False,
+):
+    tag_models = [Tag(name=tag_name) for tag_name in tags]
+    try:
+        repo.tag(snippet_id, *tag_models, remove=remove)
+    except SnippetNotFoundError:
+        raise HTTPException(
+            status_code=404, detail=f"Snippet with ID {snippet_id} not found"
+        )
+    snippet = repo.get(snippet_id)
+    return snippet
