@@ -1,13 +1,13 @@
 from typing import List
 
 import typer
-from dotenv import dotenv_values
+from decouple import config
 from rich import print
 from rich.console import Group
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.text import Text
-from sqlmodel import create_engine
+from sqlmodel import create_engine, SQLModel
 from typer import Typer
 from typing_extensions import Annotated
 
@@ -15,7 +15,6 @@ from .exceptions import SnippetNotFoundError
 from .models import LangEnum, Snippet, Tag
 from .repo import DBSnippetRepository
 
-config = dotenv_values()
 app = Typer()
 
 
@@ -62,7 +61,9 @@ def print_panel(snippet: Snippet) -> None:
 
 @app.callback()
 def init(ctx: typer.Context):
-    engine = create_engine(config["DATABASE_URL"], echo=False)
+    database_url = config("DATABASE_URL", default="sqlite:///snippets.db")
+    engine = create_engine(database_url, echo=False)
+    SQLModel.metadata.create_all(engine)
     ctx.obj = DBSnippetRepository(engine)
 
 
