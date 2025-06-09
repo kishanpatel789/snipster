@@ -4,7 +4,8 @@ from decouple import config
 from fastapi import Depends, FastAPI, HTTPException
 from sqlmodel import create_engine
 
-from .models import DeleteResponse, Snippet, SnippetCreate, SnippetRead
+from .exceptions import SnippetNotFoundError
+from .models import DeleteResponse, LangEnum, Snippet, SnippetCreate, SnippetRead
 from .repo import DBSnippetRepository
 
 app = FastAPI()
@@ -51,10 +52,34 @@ def create_snippet(snippet: SnippetCreate, repo: RepoDep):
 
 @app.delete("/snippets/{snippet_id}")
 def delete_snippet(snippet_id: int, repo: RepoDep) -> DeleteResponse:
-    snippet = repo.get(snippet_id)
-    if snippet is None:
+    try:
+        repo.delete(snippet_id)
+    except SnippetNotFoundError:
         raise HTTPException(
             status_code=404, detail=f"Snippet with ID {snippet_id} not found"
         )
-    repo.delete(snippet_id)
     return {"detail": f"Snippet with ID {snippet_id} deleted successfully"}
+
+
+@app.post("/snippets/{snippet_id}/favorite", response_model=SnippetRead)
+def toggle_favorite(snippet_id: int, repo: RepoDep):
+    try:
+        snippet = repo.toggle_favorite(snippet_id)
+    except SnippetNotFoundError:
+        raise HTTPException(
+            status_code=404, detail=f"Snippet with ID {snippet_id} not found"
+        )
+    snippet = repo.get(snippet_id)
+    return snippet
+
+
+@app.get("/snippets/search/", response_model=list[SnippetRead])
+def search_snippets(
+    term: str,
+    repo: RepoDep,
+    tag_name: str | None = None,
+    language: LangEnum | None = None,
+    fuzzy: bool = False,
+):
+    snippets = repo.search(term, tag_name=tag_name, language=language, fuzzy=fuzzy)
+    return snippets
