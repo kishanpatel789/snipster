@@ -634,6 +634,7 @@ source = { editable = "." }
 dependencies = [
     { name = "fastapi", extra = ["all"] },
     { name = "flask" },
+    { name = "httpx" },
     { name = "python-decouple" },
     { name = "sqlmodel" },
     { name = "typer" },
@@ -651,6 +652,7 @@ dev = [
 requires-dist = [
     { name = "fastapi", extras = ["all"], specifier = ">=0.115.12" },
     { name = "flask", specifier = ">=3.1.1" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "python-decouple", specifier = ">=3.8" },
     { name = "sqlmodel", specifier = ">=0.0.24" },
     { name = "typer", specifier = ">=0.16.0" },

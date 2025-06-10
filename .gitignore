@@ -179,3 +179,4 @@ cython_debug/
 tmux_start.sh
 scratch.py
 *.db
+config.json

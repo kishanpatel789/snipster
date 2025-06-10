@@ -10,6 +10,7 @@ requires-python = ">=3.13"
 dependencies = [
     "fastapi[all]>=0.115.12",
     "flask>=3.1.1",
+    "httpx>=0.28.1",
     "python-decouple>=3.8",
     "sqlmodel>=0.0.24",
     "typer>=0.16.0",
