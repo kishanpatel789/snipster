@@ -31,3 +31,7 @@ guirun:
 .PHONY: apirun
 apirun:
 	uv run fastapi dev src/snipster/api.py
+
+.PHONY: seed
+seed:
+	PYTHONPATH=. uv run python scripts/seed_db.py
