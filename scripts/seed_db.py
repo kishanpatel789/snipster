@@ -28,7 +28,7 @@ def main() -> None:
                 tags=[tag_beginner, tag_training],
             )
             s2 = Snippet(
-                title="SQL SELECT",
+                title="Filter a table",
                 code="SELECT * FROM users WHERE age > 30;",
                 description="Basic SQL query to select users older than 30",
                 language=LangEnum.SQL,
