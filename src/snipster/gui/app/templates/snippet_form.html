@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Add Snippet{% endblock %}
+
+{% block content %}
+<h2>Add Snippet</h2>
+<form method="post">
+    {{ form.hidden_tag() }}
+    <p>
+        {{ form.title.label }}<br>
+        {{ form.title }}
+    </p>
+    <p>
+        {{ form.code.label }}<br>
+        {{ form.code }}
+    </p>
+    <p>
+        {{ form.description.label }}<br>
+        {{ form.description }}
+    </p>
+    <p>
+        {{ form.language.label }}<br>
+        {{ form.language }}
+    </p>
+    <p>
+        {{ form.favorite.label }}<br>
+        {{ form.favorite }}
+    </p>
+    <button type="submit">Submit</button>
+</form>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Tag Snippet{% endblock %}
+
+{% block content %}
+<h2>{{ snippet.title }}</h2>
+<h3>Update Tags</h3>
+<form method="post">
+    {{ form.hidden_tag() }}
+    <p>
+        {{ form.tags.label }}<br>
+        {{ form.tags }}
+    </p>
+    <button type="submit">Submit</button>
+</form>
+{% endblock %}

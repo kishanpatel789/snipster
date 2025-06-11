@@ -69,7 +69,7 @@ class SnippetRead(SnippetBase):
 
 
 class TagBase(SQLModel):
-    name: str = Field(min_length=3, max_length=20)
+    name: str = Field(min_length=1, max_length=20)
 
     @field_validator("name", mode="before")
     @classmethod

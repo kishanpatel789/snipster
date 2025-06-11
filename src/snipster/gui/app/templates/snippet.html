@@ -4,7 +4,7 @@
 
 {% block content %}
 <h2>
-    {{ snippet.title }}
+    {{ snippet.title }} ({{ snippet.language }})
     {% if snippet.favorite %}
         <span>&#11088;</span>
     {% endif %}
@@ -12,9 +12,19 @@
 
 <p>{{ snippet.description }}</p>
 <pre><code>{{ snippet.code }}</code></pre>
+{% if snippet.tags | length > 0 %}
+<h5>
+    {% for tag in snippet.tags %}
+    <span>#{{ tag.name }}</span>
+    {% endfor %}
+</h5>
+{% endif %}
 <form method="post" action="{{ url_for('main.toggle_favorite', snippet_id=snippet.id) }}">
     <button type="submit">Toggle Favorite</button>
 </form>
+<a href="{{ url_for('main.tag_snippet', snippet_id=snippet.id) }}">
+    Manage Tags
+</a>
 <form method="post" action="{{ url_for('main.delete_snippet', snippet_id=snippet.id) }}">
     <button type="submit">Delete</button>
 </form>
