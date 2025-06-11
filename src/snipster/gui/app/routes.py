@@ -31,9 +31,32 @@ def index():
 
 @main_bp.route("/snippet/<int:snippet_id>")
 def view_snippet(snippet_id: int):
-    pass
+    snippet = call_api(f"snippets/{snippet_id}", method="GET")
+
+    return render_template("snippet.html", snippet=snippet)
+
+
+# try:
+#
+# response = httpx.get(f"{API_BASE_URL}/snippets/{snippet_id}")
+# response.raise_for_status()
+# snippet = response.json()
+# return render_template("snippet.html", snippet=snippet)
+# except httpx.RequestError as e:
+# flash(f"Error fetching snippet: {str(e)}", "danger")
+# return redirect(url_for("index"))
 
 
 @main_bp.route("/snippet/add", methods=["GET", "POST"])
 def add_snippet():
+    pass
+
+
+@main_bp.route("/snippet/<int:snippet_id>/toggle-favorite", methods=["POST"])
+def toggle_favorite():
+    pass
+
+
+@main_bp.route("/snippet/<int:snippet_id>/delete", methods=["POST"])
+def delete_snippet():
     pass

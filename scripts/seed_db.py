@@ -18,7 +18,7 @@ def main() -> None:
         with Session(engine) as session:
             tag_beginner = Tag(name="beginner")
             tag_training = Tag(name="training")
-            tag_sql = Tag(name="sql")
+            tag_query = Tag(name="query")
 
             s1 = Snippet(
                 title="List comprehension",
@@ -32,10 +32,26 @@ def main() -> None:
                 code="SELECT * FROM users WHERE age > 30;",
                 description="Basic SQL query to select users older than 30",
                 language=LangEnum.SQL,
-                tags=[tag_sql],
+                tags=[tag_query],
+                favorite=True,
+            )
+            s3 = Snippet(
+                title="F-Strings",
+                code="name = 'Harry'\nprint(f'Hello, {name}!')",
+                description="Python 3.6+ supports in-line string formtting",
+                language=LangEnum.PYTHON,
+                tags=[tag_training],
+                favorite=True,
+            )
+            s4 = Snippet(
+                title="Traits",
+                code="trait Greet {\n    fn greet(&self);\n}",
+                description="Traits define shared behavior in Rust",
+                language=LangEnum.RUST,
+                tags=[tag_training],
             )
 
-            session.add_all([s1, s2])
+            session.add_all([s1, s2, s3, s4])
             session.commit()
 
     engine = get_engine()

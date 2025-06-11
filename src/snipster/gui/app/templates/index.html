@@ -1,14 +1,26 @@
 {% extends "base.html" %}
 
-
 {% block content %}
-<h2>Code Snippets</h2>
 <a href="{{ url_for('main.add_snippet') }}">Add Snippet</a>
-<ul>
+<hr>
+<div>
     {% for snippet in snippets %}
-    <li>
+    <div>
         <a href="{{ url_for('main.view_snippet', snippet_id=snippet.id) }}">{{ snippet.title }}</a>
-    </li>
+        {% if snippet.favorite %}
+            <span>&#11088;</span>
+        {% endif %}
+        <p>{{ snippet.description }}</p>
+        <pre><code>{{ snippet.code }}</code></pre>
+        {% if snippet.tags | length > 0 %}
+        <h5>
+            {% for tag in snippet.tags %}
+            <span>#{{ tag.name }}</span>
+            {% endfor %}
+        </h5>
+        {% endif %}
+    </div>
+    <hr>
     {% endfor %}
-</ul>
+</div>
 {% endblock %}

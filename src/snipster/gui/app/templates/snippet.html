@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}{{ snippet.title }}{% endblock %}
+
+{% block content %}
+<h2>
+    {{ snippet.title }}
+    {% if snippet.favorite %}
+        <span>&#11088;</span>
+    {% endif %}
+</h2>
+
+<p>{{ snippet.description }}</p>
+<pre><code>{{ snippet.code }}</code></pre>
+<form method="post" action="{{ url_for('main.toggle_favorite', snippet_id=snippet.id) }}">
+    <button type="submit">Toggle Favorite</button>
+</form>
+<form method="post" action="{{ url_for('main.delete_snippet', snippet_id=snippet.id) }}">
+    <button type="submit">Delete</button>
+</form>
+{% endblock %}
