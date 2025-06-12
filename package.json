@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.10",
+    "tailwindcss": "^4.1.10"
+  },
+  "scripts": {
+    "build": "tailwindcss -i ./src/snipster/gui/app/static/css/input.css -o ./src/snipster/gui/app/static/css/main.css",
+    "watch": "tailwindcss -i ./src/snipster/gui/app/static/css/input.css -o ./src/snipster/gui/app/static/css/main.css --watch"
+  }
+}

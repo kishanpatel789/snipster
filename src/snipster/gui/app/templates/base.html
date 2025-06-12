@@ -1,27 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <title>{% block title %}Snipster{% endblock %}</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body>
-    <header>
-        <h1><a href="{{ url_for('main.index') }}">Snipster</a></h1>
+    <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+  </head>
+  <body class="bg-gray-100 text-gray-800 font-sans">
+    <header class="bg-white shadow-md px-6 py-4 mb-8 text-center">
+      <h1 class="text-2xl font-bold text-blue-600">
+        <a href="{{ url_for('main.index') }}" class="hover:underline">Snipster</a>
+      </h1>
     </header>
 
-    <main>
-        {% with messages = get_flashed_messages(with_categories=True) %}
-        {% if messages %}
-        <div id="flash-messages">
-            {% for category, message in messages %}
-            <div class="flash-message {{ category }}">{{ message }}</div>
-            {% endfor %}
-        </div>
-        {% endif %}
-        {% endwith %}
+    <main class="max-w-4xl mx-auto px-6">
+      {% with messages = get_flashed_messages(with_categories=True) %}
+      {% if messages %}
+      <div id="flash-messages">
+        {% for category, message in messages %}
+        <div class="flash-message {{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endwith %}
 
-        {% block content %}{% endblock %}
+      {% block content %}{% endblock %}
     </main>
-</body>
+  </body>
 </html>

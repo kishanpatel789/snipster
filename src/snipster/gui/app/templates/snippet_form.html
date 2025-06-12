@@ -1,31 +1,42 @@
 {% extends "base.html" %}
-
 {% block title %}Add Snippet{% endblock %}
 
 {% block content %}
-<h2>Add Snippet</h2>
-<form method="post">
+<h2 class="text-center text-2xl font-semibold text-gray-800 mb-4">Add Snippet</h2>
+
+<form method="post" class="bg-white p-6 rounded-lg shadow max-w-2xl mx-auto">
     {{ form.hidden_tag() }}
-    <p>
-        {{ form.title.label }}<br>
-        {{ form.title }}
-    </p>
-    <p>
-        {{ form.code.label }}<br>
-        {{ form.code }}
-    </p>
-    <p>
-        {{ form.description.label }}<br>
-        {{ form.description }}
-    </p>
-    <p>
-        {{ form.language.label }}<br>
-        {{ form.language }}
-    </p>
-    <p>
-        {{ form.favorite.label }}<br>
-        {{ form.favorite }}
-    </p>
-    <button type="submit">Submit</button>
+
+    <div class="mb-4">
+        {{ form.title.label(class_="form-label") }}
+        {{ form.title(class_="form-field") }}
+    </div>
+
+    <div class="mb-4">
+        {{ form.code.label(class_="form-label") }}
+        {{ form.code(class_="form-field font-mono text-sm") }}
+    </div>
+
+    <div class="mb-4">
+        {{ form.description.label(class_="form-label") }}
+        {{ form.description(class_="form-field") }}
+    </div>
+
+    <div class="mb-4">
+        {{ form.language.label(class_="form-label") }}
+        {{ form.language(class_="form-field") }}
+    </div>
+
+    <div class="mb-6 inline-flex gap-2">
+        {{ form.favorite(class_="rounded") }}
+        {{ form.favorite.label(class_="text-sm font-medium text-gray-700") }}
+    </div>
+
+    <div class="flex gap-4 justify-center mt-2">
+      <button type="submit" class="btn">Submit</button>
+      <a href="{{ url_for('main.index') }}" class="btn-secondary">
+        Cancel
+      </a>
+    </div>
 </form>
 {% endblock %}
