@@ -14,15 +14,19 @@
     </header>
 
     <main class="max-w-4xl mx-auto px-6">
-      {% with messages = get_flashed_messages(with_categories=True) %}
-      {% if messages %}
-      <div id="flash-messages">
-        {% for category, message in messages %}
-        <div class="flash-message {{ category }}">{{ message }}</div>
-        {% endfor %}
-      </div>
-      {% endif %}
-      {% endwith %}
+        {% with messages = get_flashed_messages(with_categories=True) %}
+          {% if messages %}
+            <div id="flash-messages" class="fixed top-16 left-1/2 transform -translate-x-1/2 w-full max-w-md z-50 space-y-2">
+              {% for category, message in messages %}
+                <div class="flash-message {{ category }} flex items-start justify-between gap-4 px-4 py-3 rounded shadow text-sm"
+                     data-flash>
+                  <span>{{ message }}</span>
+                  <button class="text-xl leading-none focus:outline-none" onclick="this.parentElement.remove()">×</button>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
 
       {% block content %}{% endblock %}
     </main>
