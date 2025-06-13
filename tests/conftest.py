@@ -1,6 +1,7 @@
 import pytest
+from sqlmodel import create_engine
 
-from src.snipster.models import SQLModel, create_engine
+from src.snipster.models import SQLModel
 from src.snipster.repo import DBSnippetRepository
 
 
