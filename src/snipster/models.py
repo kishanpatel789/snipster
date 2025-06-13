@@ -5,7 +5,7 @@ from enum import StrEnum
 from pydantic import BaseModel, ConfigDict, field_validator
 from sqlalchemy import Column
 from sqlalchemy import Enum as SaEnum
-from sqlmodel import Field, Relationship, Session, SQLModel, create_engine
+from sqlmodel import Field, Relationship, SQLModel
 
 
 def enum_column(enum_cls):
@@ -95,37 +95,3 @@ class TagRead(TagBase):
 
 class DeleteResponse(BaseModel):
     detail: str
-
-
-def main():  # pragma: no cover
-    from decouple import config
-
-    def get_engine():
-        engine = create_engine(config["DATABASE_URL"], echo=True)
-        return engine
-
-    def create_db_and_tables(engine):
-        SQLModel.metadata.create_all(engine)
-
-    def create_snippets(engine):
-        with Session(engine) as session:
-            tag_beginner = Tag(name="beginner")
-            tag_training = Tag(name="training")
-
-            snippet = Snippet(
-                title="First snip",
-                code="print('hello world')",
-                description="Say hello snipster",
-                language=LangEnum.PYTHON,
-                tags=[tag_beginner, tag_training],
-            )
-            session.add(snippet)
-            session.commit()
-
-    engine = get_engine()
-    create_db_and_tables(engine)
-    create_snippets(engine)
-
-
-if __name__ == "__main__":
-    main()
