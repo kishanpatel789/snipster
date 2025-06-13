@@ -38,18 +38,8 @@ def test_root(client: TestClient):
     assert response.json() == {"message": "Snipster API is alive!"}
 
 
-# get snippets
-# create snippet
-# get snippet by id
-# delete snippet
-# toggle favorite
-# search snippets
-# tag
-
-# errors 404 422
-
-
-def test_add_snippet(client: TestClient):
+@pytest.fixture()
+def add_snippet(client: TestClient):
     payload = {
         "title": "First snip",
         "code": "print('hello world')",
@@ -57,6 +47,23 @@ def test_add_snippet(client: TestClient):
         "language": "py",
     }
     response = client.post("/snippets", json=payload)
+    return response
+
+
+@pytest.fixture()
+def add_another_snippet(client: TestClient):
+    payload = {
+        "title": "Get it all",
+        "code": "SELECT * FROM MY_TABLE;",
+        "description": "Get all records from MY_TABLE",
+        "language": "sql",
+    }
+    response = client.post("/snippets", json=payload)
+    return response
+
+
+def test_add_snippet(client: TestClient, add_snippet):
+    response = add_snippet
     data = response.json()
 
     assert response.status_code == 200
@@ -64,23 +71,142 @@ def test_add_snippet(client: TestClient):
     assert data["title"] == "First snip"
 
 
-def test_get_snippet(client: TestClient):
-    payload = {
-        "title": "First snip",
-        "code": "print('hello world')",
-        "description": "Good day, Snipster!",
-        "language": "py",
-    }
-    client.post("/snippets", json=payload)
+def test_add_snippet_422(client: TestClient):
+    payload = {}
+    response = client.post("/snippets", json=payload)
 
+    assert response.status_code == 422
+
+
+def test_get_snippets(client: TestClient, add_snippet, add_another_snippet):
+    response = client.get("/snippets")
+    data = response.json()
+
+    assert response.status_code == 200
+    assert len(data) == 2
+
+
+def test_get_snippet(client: TestClient, add_snippet):
     response = client.get("/snippets/1")
     data = response.json()
 
     assert response.status_code == 200
+    assert data["id"] == 1
     assert data["title"] == "First snip"
 
 
 def test_get_snippet_not_found(client: TestClient):
-    response = client.get("/snippet/99")
+    response = client.get("/snippets/99")
+    data = response.json()
 
     assert response.status_code == 404
+    assert data["detail"] == "Snippet with ID 99 not found"
+
+
+def test_delete_snippet(client: TestClient, add_snippet):
+    response = client.delete("/snippets/1")
+    data = response.json()
+
+    assert response.status_code == 200
+    assert data["detail"] == "Snippet with ID 1 deleted successfully"
+
+    response = client.get("/snippets/1")
+
+    assert response.status_code == 404
+
+
+def test_delete_snippet_not_found(client: TestClient):
+    response = client.delete("/snippets/99")
+    data = response.json()
+
+    assert response.status_code == 404
+    assert data["detail"] == "Snippet with ID 99 not found"
+
+
+def test_toggle_favorite(client: TestClient, add_snippet):
+    response = add_snippet
+    data = response.json()
+    assert not data["favorite"]
+
+    response = client.post("/snippets/1/favorite")
+    data = response.json()
+    assert data["favorite"]
+    assert data["updated_at"] is not None
+
+    response = client.post("/snippets/1/favorite")
+    data = response.json()
+    assert not data["favorite"]
+
+
+def test_toggle_favorite_not_found(client: TestClient):
+    response = client.post("/snippets/99/favorite")
+    data = response.json()
+
+    assert response.status_code == 404
+    assert data["detail"] == "Snippet with ID 99 not found"
+
+
+def test_add_tag(client: TestClient, add_snippet):
+    payload = ["training", "beginner"]
+    response = client.post("snippets/1/tags", json=payload)
+    data = response.json()
+
+    assert response.status_code == 200
+    assert len(data["tags"]) == 2
+
+    response = client.get("snippets/1")
+    data = response.json()
+
+    assert response.status_code == 200
+    assert len(data["tags"]) == 2
+
+
+def test_remove_tag(client: TestClient, add_snippet):
+    payload = ["training", "beginner"]
+    response = client.post("snippets/1/tags", json=payload)
+    data = response.json()
+
+    assert len(data["tags"]) == 2
+
+    payload = ["training"]
+    response = client.post("snippets/1/tags?remove=true", json=payload)
+    data = response.json()
+
+    assert response.status_code == 200
+    assert len(data["tags"]) == 1
+    assert data["tags"][0]["name"] == "beginner"
+
+
+def test_no_duplicate_tag_added(client: TestClient, add_snippet):
+    payload = ["training", "training"]
+    response = client.post("snippets/1/tags", json=payload)
+    data = response.json()
+
+    assert len(data["tags"]) == 1
+
+    payload = ["training"]
+    response = client.post("snippets/1/tags", json=payload)
+    data = response.json()
+
+    assert response.status_code == 200
+    assert len(data["tags"]) == 1
+    assert data["tags"][0]["name"] == "training"
+
+
+def test_tag_snippet_not_found(client: TestClient):
+    payload = ["training"]
+    response = client.post("/snippets/99/tags", json=payload)
+    data = response.json()
+
+    assert response.status_code == 404
+    assert data["detail"] == "Snippet with ID 99 not found"
+
+
+def test_tag_snippet_422(client: TestClient):
+    payload = {}
+    response = client.post("/snippets", json=payload)
+
+    assert response.status_code == 422
+
+
+# TODO: add tests for search endpoint
