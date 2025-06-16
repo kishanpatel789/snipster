@@ -2,10 +2,10 @@ import re
 from datetime import datetime, timezone
 from enum import StrEnum
 
-from pydantic import ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 from sqlalchemy import Column
 from sqlalchemy import Enum as SaEnum
-from sqlmodel import Field, Relationship, Session, SQLModel, create_engine
+from sqlmodel import Field, Relationship, SQLModel
 
 
 def enum_column(enum_cls):
@@ -25,15 +25,18 @@ class SnippetTagLink(SQLModel, table=True):
     tag_id: int | None = Field(default=None, foreign_key="tag.id", primary_key=True)
 
 
-class Snippet(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+class SnippetBase(SQLModel):
     title: str
     code: str
     description: str | None = None
     language: LangEnum = Field(sa_column=enum_column(LangEnum))
+    favorite: bool = False
+
+
+class Snippet(SnippetBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
     created_at: datetime = datetime.now(timezone.utc)
     updated_at: datetime | None = None
-    favorite: bool = False
 
     tags: list["Tag"] = Relationship(
         back_populates="snippets",
@@ -54,8 +57,19 @@ class Snippet(SQLModel, table=True):
         return snippet
 
 
+class SnippetCreate(SnippetBase):
+    pass
+
+
+class SnippetRead(SnippetBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime | None = None
+    tags: list["TagRead"]
+
+
 class TagBase(SQLModel):
-    name: str = Field(min_length=3, max_length=20)
+    name: str = Field(min_length=1, max_length=20)
 
     @field_validator("name", mode="before")
     @classmethod
@@ -75,37 +89,9 @@ class Tag(TagBase, table=True):
     )
 
 
-def main():  # pragma: no cover
-    from dotenv import dotenv_values
-
-    config = dotenv_values()
-
-    def get_engine():
-        engine = create_engine(config["DATABASE_URL"], echo=True)
-        return engine
-
-    def create_db_and_tables(engine):
-        SQLModel.metadata.create_all(engine)
-
-    def create_snippets(engine):
-        with Session(engine) as session:
-            tag_beginner = Tag(name="beginner")
-            tag_training = Tag(name="training")
-
-            snippet = Snippet(
-                title="First snip",
-                code="print('hello world')",
-                description="Say hello snipster",
-                language=LangEnum.PYTHON,
-                tags=[tag_beginner, tag_training],
-            )
-            session.add(snippet)
-            session.commit()
-
-    engine = get_engine()
-    create_db_and_tables(engine)
-    create_snippets(engine)
+class TagRead(TagBase):
+    id: int
 
 
-if __name__ == "__main__":
-    main()
+class DeleteResponse(BaseModel):
+    detail: str

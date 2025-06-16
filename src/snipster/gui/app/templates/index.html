@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<a href="{{ url_for('main.add_snippet') }}" class="btn block w-fit mx-auto mb-6">Add Snippet</a>
+
+<div class="space-y-6">
+  {% for snippet in snippets %}
+
+  <div class="bg-white rounded-lg shadow p-5">
+    <div class="flex justify-between items-center mb-2">
+      <a href="{{ url_for('main.view_snippet', snippet_id=snippet.id) }}" class="snippet-title hover:underline">{{ snippet.title }}</a>
+      {% if snippet.favorite %}
+      <span>&#11088;</span>
+      {% endif %}
+    </div>
+    <p class="snippet-description">{{ snippet.description }}</p>
+    <pre class="snippet-pre"><code>{{ snippet.code }}</code></pre>
+    {% if snippet.tags | length > 0 %}
+    <div class="mt-3 space-x-2">
+      {% for tag in snippet.tags %}
+      <span class="tag-pill">#{{ tag.name }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+{% endfor %}
+</div>
+
+{% endblock %}

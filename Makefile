@@ -23,3 +23,15 @@ install:
 .PHONY: run
 run:
 	uv run python -m src.snipster.main
+
+.PHONY: guirun
+guirun:
+	uv run flask --app src/snipster/gui/wsgi.py run --debug
+
+.PHONY: apirun
+apirun:
+	uv run fastapi dev src/snipster/api.py
+
+.PHONY: seed
+seed:
+	PYTHONPATH=. uv run python scripts/seed_db.py

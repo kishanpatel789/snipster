@@ -1,0 +1,6 @@
+{
+    "SECRET_KEY": "",
+    "APP_DATA": {
+      "backend_server": "http://127.0.0.1:8000"
+    }
+}

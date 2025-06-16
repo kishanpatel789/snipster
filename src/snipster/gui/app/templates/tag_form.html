@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Tag Snippet{% endblock %}
+
+{% block content %}
+<h2 class="text-center text-2xl font-semibold text-gray-800 mb-2">{{ snippet.title }}</h2>
+<h3 class="text-center text-lg text-gray-600 mb-6">Update Tags</h3>
+
+<form method="post" class="bg-white p-6 rounded-lg shadow max-w-2xl mx-auto">
+  {{ form.hidden_tag() }}
+  <div class="mb-6">
+    <label class="form-label">
+      {{ form.tags.label }}
+    </label>
+    {{ form.tags(class_="form-field") }}
+  </div>
+  <div class="flex justify-center gap-4">
+    <button type="submit" class="btn">Submit</button>
+    <a href="{{ url_for('main.view_snippet', snippet_id=snippet.id) }}" class="btn-secondary">Cancel</a>
+  </div>
+</form>
+{% endblock %}

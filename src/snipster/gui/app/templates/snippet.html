@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}{{ snippet.title }}{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow p-5 mb-6">
+  <h2 class="snippet-title">
+    {{ snippet.title }} ({{ snippet.language }})
+    {% if snippet.favorite %}
+    <span>&#11088;</span>
+    {% endif %}
+  </h2>
+
+  <p class="snippet-description">{{ snippet.description }}</p>
+  <pre class="snippet-pre"><code>{{ snippet.code }}</code></pre>
+  {% if snippet.tags | length > 0 %}
+  <div class="mt-3 space-x-2">
+    {% for tag in snippet.tags %}
+    <span class="tag-pill">#{{ tag.name }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="flex flex-col gap-4 sm:flex-row items-center justify-center">
+  <form method="post" action="{{ url_for('main.toggle_favorite', snippet_id=snippet.id) }}">
+    <button type="submit" class="btn">Toggle Favorite</button>
+  </form>
+  <div>
+  <a href="{{ url_for('main.tag_snippet', snippet_id=snippet.id) }}" class="btn inline-block">
+    Manage Tags
+  </a>
+  </div>
+  <form method="post" action="{{ url_for('main.delete_snippet', snippet_id=snippet.id) }}">
+    <button type="submit" class="btn-danger">Delete</button>
+  </form>
+</div>
+{% endblock %}
