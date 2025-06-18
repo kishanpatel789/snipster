@@ -181,3 +181,4 @@ scratch.py
 *.db
 config.json
 node_modules
+snipster.tar

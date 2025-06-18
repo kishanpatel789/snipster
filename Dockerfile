@@ -15,4 +15,4 @@ RUN PYTHONPATH=. uv run python scripts/seed_db.py
 
 RUN rm -r ./scripts
 
-CMD ["uv", "run", "fastapi", "run", "src/snipster/api.py", "--port", "80"]
+CMD ["uv", "run", "fastapi", "run", "src/snipster/api.py", "--port", "5000"]
