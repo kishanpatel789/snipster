@@ -81,4 +81,4 @@ jobs:
           name: python-package-distributions
           path: dist/
       - name: Publish distribution 📦 to TestPyPI
-        run: uv publish --index-url https://test.pypi.org/legacy/
+        run: uv publish --publish-url https://test.pypi.org/legacy/
