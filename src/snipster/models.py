@@ -9,6 +9,7 @@ from sqlmodel import Field, Relationship, SQLModel
 
 
 def enum_column(enum_cls):
+    """A SQLAlchemy column that properly returns ENUM values instead of labels"""
     return Column(SaEnum(enum_cls, values_callable=lambda x: [e.value for e in x]))
 
 

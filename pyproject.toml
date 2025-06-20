@@ -1,5 +1,5 @@
 [project]
-name = "snipster"
+name = "snipster-kp"
 version = "0.1.0"
 description = "A tool to store and manage code snippets."
 readme = "README.md"
@@ -24,10 +24,20 @@ snipster = "snipster.__main__:main"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build]
+only-packages = true
+exclude = [
+  "tests",
+  "src/snipster/api.py",
+  "src/snipster/gui"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/snipster"]
+
 [dependency-groups]
 dev = [
     "alembic>=1.16.1",
-    "psycopg2-binary>=2.9.10",
     "pytest>=8.3.5",
     "pytest-cov>=6.1.1",
 ]
