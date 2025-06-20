@@ -13,6 +13,18 @@ def call_api(
     params: dict | None = None,
     payload: dict | None = None,
 ) -> dict:
+    """Utilty function to call backend API from route logic.
+
+    Args:
+        endpoint (str): endpoint to call
+        method (str): HTTP call method; can be GET, POST, or DELETE
+        params (dict | None): query params to add to endpoint URL
+        payload (dict | None): request body content to send with API call
+
+    Returns:
+        dict: response from API call
+    """
+
     url = "/".join([app.config["APP_DATA"]["backend_server"], endpoint])
 
     if method == "GET":

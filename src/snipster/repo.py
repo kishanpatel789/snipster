@@ -13,6 +13,11 @@ from .models import LangEnum, Snippet, Tag
 
 
 class SnippetRepository(ABC):  # pragma: no cover
+    """An Abstract Base Class for Snippet repositories.
+    Declares abstract methods that should be implemented by subclasses.
+    Also contains helper methods that are common between subclasses.
+    """
+
     @abstractmethod
     def add(self, snippet: Snippet) -> None:
         pass
@@ -54,6 +59,19 @@ class SnippetRepository(ABC):  # pragma: no cover
         tag_name: str | None = None,
         language: LangEnum | None = None,
     ) -> Sequence[Snippet]:
+        """Perform a search of snippets using a simple "is in" filter.
+        Expects to receive snippets to search across and term to search by.
+        Also allows filtering by tag or language.
+
+        Args:
+            snippets (Sequence[Snippet]): sequence of snippets to search
+            term (str): search term
+            tag_name (str | None): name of tag to filter by
+            language (LangEnum | None): language to filter by
+
+        Returns:
+            Sequence[Snippet]: list of snippets matching search criteria
+        """
         results = []
         term_lower = term.lower()
         for snippet in snippets:
@@ -79,6 +97,21 @@ class SnippetRepository(ABC):  # pragma: no cover
         tag_name: str | None = None,
         language: LangEnum | None = None,
     ) -> Sequence[Snippet]:
+        """Perform a fuzzy search of snippets.
+        Uses SequenceMatcher from `difflib` package to perform search
+        against title, description, and code of snippets.
+        Expects to receive snippets to search across and term to search by.
+        Also allows filtering by tag or language.
+
+        Args:
+            snippets (Sequence[Snippet]): sequence of snippets to search
+            term (str): search term
+            tag_name (str | None): name of tag to filter by
+            language (LangEnum | None): language to filter by
+
+        Returns:
+            Sequence[Snippet]: list of snippets matching search criteria
+        """
         PASS_THRESHOLD = 0.6
         results = []
         term_lower = term.lower()
@@ -102,12 +135,29 @@ class SnippetRepository(ABC):  # pragma: no cover
         return results
 
     def _update_favorite(self, snippet: Snippet) -> None:
-        """Updates the snippet's favorite status and updated_at timestamp."""
+        """Updates the snippet's favorite status and updated_at timestamp.
+
+        Args:
+            snippet (Snippet): snippet to toggle favorite status
+
+        Returns:
+            None:
+        """
         snippet.favorite = not snippet.favorite
         snippet.updated_at = datetime.now(timezone.utc)
 
     def _update_tags(self, snippet: Snippet, tags: Sequence[Tag], remove: bool) -> None:
-        """Updates the snippet's tags in-place. Modifies snippet.tags and updated_at."""
+        """Updates the snippet's tags in-place. Modifies snippet.tags and updated_at.
+        Method either adds tags provided or removes tags provided depending on `remove`.
+
+        Args:
+            snippet (Snippet): snippet on which to update tags
+            tags (Sequence[Tag]): tags to either add or remove (depending on `remove`)
+            remove (bool): if True, removes tags given in `tags`; else adds those tags
+
+        Returns:
+            None:
+        """
         # O(m+n) instead of O(m*n)
         current_tags: dict[str, Tag] = {tag.name: tag for tag in snippet.tags}
         incoming_tags: dict[str, Tag] = {tag.name: tag for tag in tags}
@@ -129,6 +179,10 @@ class SnippetRepository(ABC):  # pragma: no cover
 
 
 class InMemorySnippetRepository(SnippetRepository):
+    """In-memory implementation of Snippet repository.
+    Maintains storage in an internal `_snippets` dictionary.
+    """
+
     def __init__(self) -> None:
         self._snippets: dict[int, Snippet] = {}
 
@@ -177,6 +231,12 @@ class InMemorySnippetRepository(SnippetRepository):
 
 
 class DBSnippetRepository(SnippetRepository):
+    """Database implementation of Snippet repository.
+    Maintains storage in an external database. An internal `_engine` attribute
+    points to a SQLAlchemy engine object that communicate with the database.
+    The engine must be defined before this class is instantiated.
+    """
+
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
 
@@ -266,6 +326,16 @@ class DBSnippetRepository(SnippetRepository):
 
 
 class JSONSnippetRepository(SnippetRepository):
+    """File-based JSON implementation of Snippet repository.
+    Maintains storage in an external local file. An internal `_file_path` attribute
+    points to the file location.
+    The file path must be defined before this class is instantiated.
+
+    A series of helper methods handle the writing and reading of the file
+    as well as the serialization and deserialization between Snippet objects
+    and JSON-compatible python dictionaries.
+    """
+
     def __init__(self, file_dir: Path) -> None:
         self._file_path = file_dir / "snippets.json"
 
@@ -273,6 +343,7 @@ class JSONSnippetRepository(SnippetRepository):
             self._file_path.write_text("{}")
 
     def _read(self) -> dict[str, Snippet]:
+        """Read JSON file and return content as dictionary."""
         try:
             with open(self._file_path, "r") as f:
                 return json.load(f)
@@ -280,21 +351,25 @@ class JSONSnippetRepository(SnippetRepository):
             return {}
 
     def _write(self, data: dict) -> None:
+        """Write dictionary of snippets to JSON file."""
         with open(self._file_path, "w") as f:
             return json.dump(data, f, indent=4)
 
     def _serialize(self, snippet: Snippet) -> dict:
+        """Serialize a Snippet object into a JSON-compatible dictionary."""
         snippet_dict = snippet.model_dump(mode="json")
         snippet_dict["tags"] = [tag.model_dump(mode="json") for tag in snippet.tags]
         return snippet_dict
 
     def _deserialize(self, snippet_dict: dict) -> Snippet:
+        """Deserialize a dictionary into a Snippet object."""
         tags_dict = snippet_dict.pop("tags", [])
         snippet = Snippet.model_validate(snippet_dict)
         snippet.tags = [Tag.model_validate(tag) for tag in tags_dict]
         return snippet
 
     def _store_snippet(self, snippet: Snippet) -> None:
+        """Helper method to store an update to a single Snippet."""
         data = self._read()
         snippet_dict = self._serialize(snippet)
         data[str(snippet.id)] = snippet_dict
